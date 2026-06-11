@@ -1,0 +1,1478 @@
+// =============================================================================
+// SIGM - Sistema Integrado de Gestao Municipal
+// Schema Prisma - PostgreSQL - Multi-tenant (schema unico + entidadeId)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum TipoEntidade {
+  PREFEITURA
+  CAMARA_MUNICIPAL
+  FUNDO_MUNICIPAL
+  AUTARQUIA
+  CONSORCIO_PUBLICO
+}
+
+enum TipoPessoa {
+  FISICA
+  JURIDICA
+}
+
+enum ClassificacaoCredor {
+  SERVIDOR
+  AUTONOMO
+  FORNECEDOR
+  PRESTADOR_SERVICO
+  OUTROS
+}
+
+enum TipoConta {
+  CORRENTE
+  POUPANCA
+  PAGAMENTO
+}
+
+enum NaturezaContaContabil {
+  ATIVO
+  PASSIVO
+  PATRIMONIO_LIQUIDO
+  VPA
+  VPD
+  CONTROLE_DEVEDOR
+  CONTROLE_CREDOR
+  ORCAMENTARIA_RECEITA
+  ORCAMENTARIA_DESPESA
+}
+
+enum TipoOrgao {
+  ORGAO
+  SECRETARIA
+  FUNDO
+  AUTARQUIA
+  FUNDACAO
+  PODER_LEGISLATIVO
+}
+
+enum TipoCreditoAdicional {
+  SUPLEMENTAR
+  ESPECIAL
+  EXTRAORDINARIO
+}
+
+enum TipoEmpenho {
+  ORDINARIO
+  GLOBAL
+  ESTIMATIVO
+}
+
+enum StatusEmpenho {
+  NORMAL
+  ANULADO
+  ESTORNADO
+}
+
+enum TipoMovimentoEmpenho {
+  REFORCO
+  ANULACAO
+  ESTORNO
+}
+
+enum StatusLiquidacao {
+  PENDENTE
+  LIQUIDADA
+  ANULADA
+}
+
+enum FormaPagamento {
+  PIX
+  TED
+  DOC
+  CHEQUE
+  DINHEIRO
+  CNAB
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
+enum TipoContaBancaria {
+  CAIXA
+  BANCO
+  APLICACAO
+}
+
+enum TipoMovimentoBancario {
+  CREDITO
+  DEBITO
+}
+
+enum OrigemMovimentoBancario {
+  PAGAMENTO
+  RECEITA
+  TRANSFERENCIA
+  AJUSTE
+  MANUAL
+  ARQUIVO
+}
+
+enum TipoArquivoImportacao {
+  OFX
+  CNAB240
+  CNAB400
+}
+
+enum TipoReceita {
+  ORCAMENTARIA
+  EXTRAORCAMENTARIA
+}
+
+enum CategoriaReceita {
+  IPTU
+  ISS
+  ITBI
+  TAXAS
+  CONVENIO
+  TRANSFERENCIA
+  OUTRAS
+}
+
+enum TipoLancamentoContabil {
+  AUTOMATICO
+  MANUAL
+}
+
+enum TipoPartidaContabil {
+  DEBITO
+  CREDITO
+}
+
+enum StatusPeriodoContabil {
+  ABERTO
+  ENCERRADO
+}
+
+enum ModalidadeLicitacao {
+  DISPENSA
+  INEXIGIBILIDADE
+  PREGAO
+  CONCORRENCIA
+  CREDENCIAMENTO
+  CONCURSO
+  LEILAO
+}
+
+enum StatusLicitacao {
+  EM_ANDAMENTO
+  HOMOLOGADA
+  FRACASSADA
+  DESERTA
+  REVOGADA
+  ANULADA
+}
+
+enum StatusContrato {
+  VIGENTE
+  ENCERRADO
+  RESCINDIDO
+  SUSPENSO
+}
+
+enum TipoAditivo {
+  PRAZO
+  VALOR
+  PRAZO_VALOR
+  QUALITATIVO
+}
+
+enum StatusConvenio {
+  EM_EXECUCAO
+  CONCLUIDO
+  CANCELADO
+  EM_PRESTACAO_CONTAS
+}
+
+enum TipoMovimentoEstoque {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA
+  AJUSTE
+}
+
+enum CategoriaBem {
+  MOVEL
+  IMOVEL
+  VEICULO
+  EQUIPAMENTO_TI
+  OUTROS
+}
+
+enum StatusBem {
+  ATIVO
+  TRANSFERIDO
+  BAIXADO
+  EM_MANUTENCAO
+}
+
+enum TipoMovimentoBem {
+  AQUISICAO
+  TRANSFERENCIA
+  BAIXA
+  DEPRECIACAO
+  REAVALIACAO
+}
+
+enum TipoSugestaoIA {
+  CLASSIFICACAO_CONTABIL
+  FONTE_RECURSO
+  NATUREZA_DESPESA
+  INCONSISTENCIA
+  RETENCAO_TRIBUTARIA
+  PARECER_CONTROLE_INTERNO
+}
+
+enum StatusSugestaoIA {
+  PENDENTE
+  ACEITA
+  REJEITADA
+}
+
+// =============================================================================
+// CORE / MULTI-TENANT / AUTENTICACAO / AUDITORIA
+// =============================================================================
+
+/// Tenant: cada Prefeitura, Camara, Fundo, Autarquia ou Consorcio atendido pelo SaaS
+model Entidade {
+  id          String       @id @default(uuid())
+  tipo        TipoEntidade
+  nome        String
+  cnpj        String       @unique
+  codigoIbge  String?
+  municipio   String
+  uf          String       @db.Char(2)
+  brasao      String?
+  ativo       Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  usuarios            UsuarioEntidade[]
+  exercicios          ExercicioFinanceiro[]
+  credores            Credor[]
+  orgaos              Orgao[]
+  unidadesOrcamentarias UnidadeOrcamentaria[]
+  fontesRecurso       FonteRecurso[]
+  contasContabeis     ContaContabil[]
+  ppas                Ppa[]
+  ldos                Ldo[]
+  loas                Loa[]
+  dotacoes            Dotacao[]
+  creditosAdicionais  CreditoAdicional[]
+  empenhos            Empenho[]
+  contasBancarias     ContaBancaria[]
+  receitaLancamentos  ReceitaLancamento[]
+  lancamentosContabeis LancamentoContabil[]
+  periodosContabeis   PeriodoContabil[]
+  licitacoes          Licitacao[]
+  contratos           Contrato[]
+  convenios           Convenio[]
+  materiais           Material[]
+  bens                Bem[]
+  auditLogs           AuditLog[]
+  iaSugestoes         IaSugestao[]
+  naturezasServico    NaturezaServico[]
+  tabelasInss         TabelaInssFaixa[]
+  tabelasIrrf         TabelaIrrfFaixa[]
+  tabelasIrrfDeducao  TabelaIrrfDeducao[]
+
+  @@map("entidades")
+}
+
+/// Exercicio financeiro (ano) - controla se esta aberto/encerrado por entidade
+model ExercicioFinanceiro {
+  id         String   @id @default(uuid())
+  entidadeId String
+  entidade   Entidade @relation(fields: [entidadeId], references: [id])
+  ano        Int
+  ativo      Boolean  @default(true)
+  encerrado  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([entidadeId, ano])
+  @@map("exercicios_financeiros")
+}
+
+/// Perfil de acesso (Administrador, Contabilidade, Tesouraria, Compras, Licitacao,
+/// Controle Interno, RH, Consulta) - tabela para permitir customizacao
+model Perfil {
+  id          String   @id @default(uuid())
+  chave       String   @unique // ADMINISTRADOR, CONTABILIDADE, TESOURARIA, COMPRAS, LICITACAO, CONTROLE_INTERNO, RH, CONSULTA
+  nome        String
+  descricao   String?
+  sistemico   Boolean  @default(true) // perfis padrao do sistema, nao podem ser excluidos
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissoes      PerfilPermissao[]
+  usuarioEntidades UsuarioEntidade[]
+
+  @@map("perfis")
+}
+
+/// Permissao granular: modulo + acao (ex: EMPENHO / CRIAR, EMPENHO / ANULAR)
+model Permissao {
+  id        String  @id @default(uuid())
+  modulo    String
+  acao      String
+  descricao String?
+
+  perfis PerfilPermissao[]
+
+  @@unique([modulo, acao])
+  @@map("permissoes")
+}
+
+model PerfilPermissao {
+  id          String    @id @default(uuid())
+  perfilId    String
+  perfil      Perfil    @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  permissaoId String
+  permissao   Permissao @relation(fields: [permissaoId], references: [id], onDelete: Cascade)
+
+  @@unique([perfilId, permissaoId])
+  @@map("perfil_permissoes")
+}
+
+/// Usuario do sistema (login global, pode ter acesso a varias entidades/municipios)
+model Usuario {
+  id            String    @id @default(uuid())
+  nome          String
+  email         String    @unique
+  login         String    @unique
+  senhaHash     String
+  ativo         Boolean   @default(true)
+  precisaTrocarSenha Boolean @default(false)
+  ultimoLogin   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  entidades       UsuarioEntidade[]
+  refreshTokens   RefreshToken[]
+  resetTokens     PasswordResetToken[]
+  auditLogs       AuditLog[]
+  retencaoAjustes RetencaoCalculo[] @relation("RetencaoAjustadaPor")
+
+  @@map("usuarios")
+}
+
+/// Vinculo Usuario <-> Entidade com Perfil especifico naquela entidade
+model UsuarioEntidade {
+  id         String   @id @default(uuid())
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  entidadeId String
+  entidade   Entidade @relation(fields: [entidadeId], references: [id], onDelete: Cascade)
+  perfilId   String
+  perfil     Perfil   @relation(fields: [perfilId], references: [id])
+  padrao     Boolean  @default(false)
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([usuarioId, entidadeId])
+  @@map("usuario_entidades")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  ip        String?
+  userAgent String?
+
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+/// Auditoria completa - registros nunca sao excluidos fisicamente
+model AuditLog {
+  id           String   @id @default(uuid())
+  entidadeId   String?
+  entidade     Entidade? @relation(fields: [entidadeId], references: [id])
+  usuarioId    String?
+  usuario      Usuario? @relation(fields: [usuarioId], references: [id])
+  acao         String   // CREATE, UPDATE, DELETE (logico), LOGIN, LOGOUT, ESTORNO, ANULACAO, etc
+  modulo       String   // tela/modulo acessado
+  entidadeAfetada String? // nome da tabela/recurso
+  registroId   String?
+  dadosAnteriores Json?
+  dadosNovos   Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([entidadeId, modulo])
+  @@index([registroId])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// CADASTROS
+// =============================================================================
+
+/// Credores: Pessoa Fisica/Juridica - servidores, fornecedores, prestadores etc
+model Credor {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+
+  tipoPessoa     TipoPessoa
+  cpfCnpj        String
+  nome           String   // Razao Social ou Nome completo (PF)
+  nomeFantasia   String?
+  classificacao  ClassificacaoCredor
+
+  // Endereco
+  logradouro String?
+  numero     String?
+  complemento String?
+  bairro     String?
+  cep        String?
+  municipio  String?
+  uf         String?  @db.Char(2)
+
+  // Contato
+  telefone String?
+  email    String?
+
+  // Dados bancarios
+  banco        String?
+  agencia      String?
+  conta        String?
+  tipoConta    TipoConta?
+  chavePix     String?
+
+  // Dados tributarios
+  inscricaoEstadual  String?
+  inscricaoMunicipal String?
+  regimeTributario   String? // Simples, Lucro Presumido, Lucro Real, MEI, etc
+
+  // Dados especificos de Pessoa Fisica (para retencoes IRRF)
+  dataNascimento DateTime?
+  numeroDependentes Int @default(0)
+
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  empenhos    Empenho[]
+  contratos   Contrato[]
+  licitacaoVencedora LicitacaoItem[]
+  bensResponsavel Bem[]
+  retencoes   RetencaoCalculo[]
+
+  @@unique([entidadeId, cpfCnpj])
+  @@index([entidadeId, nome])
+  @@map("credores")
+}
+
+/// Orgaos / Secretarias / Fundos / Autarquias / Poder Legislativo (estrutura organizacional)
+model Orgao {
+  id           String   @id @default(uuid())
+  entidadeId   String
+  entidade     Entidade @relation(fields: [entidadeId], references: [id])
+  codigo       String
+  nome         String
+  tipo         TipoOrgao
+  orgaoSuperiorId String?
+  orgaoSuperior   Orgao?  @relation("OrgaoHierarquia", fields: [orgaoSuperiorId], references: [id])
+  subOrgaos       Orgao[] @relation("OrgaoHierarquia")
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  unidadesOrcamentarias UnidadeOrcamentaria[]
+  dotacoes              Dotacao[]
+
+  @@unique([entidadeId, codigo])
+  @@map("orgaos")
+}
+
+/// Unidades Orcamentarias vinculadas a um Orgao
+model UnidadeOrcamentaria {
+  id         String   @id @default(uuid())
+  entidadeId String
+  entidade   Entidade @relation(fields: [entidadeId], references: [id])
+  orgaoId    String
+  orgao      Orgao    @relation(fields: [orgaoId], references: [id])
+  codigo     String
+  nome       String
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  dotacoes Dotacao[]
+
+  @@unique([entidadeId, orgaoId, codigo])
+  @@map("unidades_orcamentarias")
+}
+
+/// Fontes de Recurso (classificacao conforme STN)
+model FonteRecurso {
+  id            String   @id @default(uuid())
+  entidadeId    String
+  entidade      Entidade @relation(fields: [entidadeId], references: [id])
+  codigo        String
+  descricao     String
+  especificacao String?
+  exercicio     Int?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  dotacoes  Dotacao[]
+  receitas  ReceitaLancamento[]
+  contasBancarias ContaBancaria[]
+
+  @@unique([entidadeId, codigo])
+  @@map("fontes_recurso")
+}
+
+/// Plano de Contas Aplicado ao Setor Publico (PCASP) - estrutura hierarquica
+model ContaContabil {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  codigo      String   // ex: 1.1.1.1.01.01
+  descricao   String
+  natureza    NaturezaContaContabil
+  classe      Int      // 1 a 8 (PCASP)
+  nivel       Int
+  contaPaiId  String?
+  contaPai    ContaContabil?  @relation("ContaHierarquia", fields: [contaPaiId], references: [id])
+  contasFilhas ContaContabil[] @relation("ContaHierarquia")
+  aceitaLancamento Boolean @default(false)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  naturezasServico NaturezaServico[]
+  partidas         LancamentoContabilPartida[]
+
+  @@unique([entidadeId, codigo])
+  @@index([entidadeId, classe])
+  @@map("plano_contas")
+}
+
+/// Natureza do servico para fins de retencao tributaria de Pessoa Fisica
+model NaturezaServico {
+  id              String   @id @default(uuid())
+  entidadeId      String
+  entidade        Entidade @relation(fields: [entidadeId], references: [id])
+  codigo          String
+  descricao       String
+  codigoReceita   String?  // codigo de receita federal (DARF) ex: 0588
+  contaContabilId String?
+  contaContabil   ContaContabil? @relation(fields: [contaContabilId], references: [id])
+  percentualInss  Decimal  @default(11.00) @db.Decimal(5, 2)
+  sujeitoInss     Boolean  @default(true)
+  sujeitoIrrf     Boolean  @default(true)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  retencoes RetencaoCalculo[]
+
+  @@unique([entidadeId, codigo])
+  @@map("naturezas_servico")
+}
+
+/// Tabela parametrizavel de faixas do INSS (vigencia)
+model TabelaInssFaixa {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  vigenciaInicio DateTime
+  vigenciaFim    DateTime?
+  faixaInicial   Decimal @db.Decimal(15, 2)
+  faixaFinal     Decimal? @db.Decimal(15, 2) // null = sem limite (teto)
+  aliquota       Decimal @db.Decimal(5, 2)
+  parcelaDeduzir Decimal @default(0) @db.Decimal(15, 2)
+  tetoPrevidenciario Decimal @db.Decimal(15, 2)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("tabela_inss_faixas")
+}
+
+/// Tabela parametrizavel progressiva do IRRF (vigencia)
+model TabelaIrrfFaixa {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  vigenciaInicio DateTime
+  vigenciaFim    DateTime?
+  baseInicial    Decimal @db.Decimal(15, 2)
+  baseFinal      Decimal? @db.Decimal(15, 2) // null = sem limite
+  aliquota       Decimal @db.Decimal(5, 2)
+  parcelaDeduzir Decimal @default(0) @db.Decimal(15, 2)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("tabela_irrf_faixas")
+}
+
+/// Deducao por dependente (IRRF) - parametrizavel por vigencia
+model TabelaIrrfDeducao {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  vigenciaInicio DateTime
+  vigenciaFim    DateTime?
+  valorPorDependente Decimal @db.Decimal(15, 2)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("tabela_irrf_deducoes")
+}
+
+// =============================================================================
+// MODULO DE ORCAMENTO (PPA / LDO / LOA / DOTACOES / CREDITOS ADICIONAIS)
+// =============================================================================
+
+/// Plano Plurianual
+model Ppa {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  anoInicio   Int
+  anoFim      Int
+  lei         String?
+  dataAprovacao DateTime?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  programas PpaPrograma[]
+
+  @@unique([entidadeId, anoInicio, anoFim])
+  @@map("ppas")
+}
+
+model PpaPrograma {
+  id        String   @id @default(uuid())
+  ppaId     String
+  ppa       Ppa      @relation(fields: [ppaId], references: [id], onDelete: Cascade)
+  codigo    String
+  nome      String
+  objetivo  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  acoes PpaAcao[]
+  dotacoes Dotacao[]
+
+  @@unique([ppaId, codigo])
+  @@map("ppa_programas")
+}
+
+model PpaAcao {
+  id          String   @id @default(uuid())
+  programaId  String
+  programa    PpaPrograma @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  codigo      String
+  nome        String
+  tipo        String  // PROJETO, ATIVIDADE, OPERACAO_ESPECIAL
+  metaFisica  String?
+  unidadeMedida String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  dotacoes Dotacao[]
+
+  @@unique([programaId, codigo])
+  @@map("ppa_acoes")
+}
+
+/// Lei de Diretrizes Orcamentarias
+model Ldo {
+  id            String   @id @default(uuid())
+  entidadeId    String
+  entidade      Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio     Int
+  lei           String?
+  dataAprovacao DateTime?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  metasFiscais LdoMetaFiscal[]
+  prioridades  LdoPrioridade[]
+
+  @@unique([entidadeId, exercicio])
+  @@map("ldos")
+}
+
+model LdoMetaFiscal {
+  id          String   @id @default(uuid())
+  ldoId       String
+  ldo         Ldo      @relation(fields: [ldoId], references: [id], onDelete: Cascade)
+  ano         Int
+  descricao   String   // Receita Total, Despesa Total, Resultado Primario, Resultado Nominal, Divida Publica
+  valorPrevisto Decimal @db.Decimal(18, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ldo_metas_fiscais")
+}
+
+model LdoPrioridade {
+  id        String   @id @default(uuid())
+  ldoId     String
+  ldo       Ldo      @relation(fields: [ldoId], references: [id], onDelete: Cascade)
+  ordem     Int
+  descricao String
+  createdAt DateTime @default(now())
+
+  @@map("ldo_prioridades")
+}
+
+/// Lei Orcamentaria Anual
+model Loa {
+  id                  String   @id @default(uuid())
+  entidadeId          String
+  entidade            Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio           Int
+  lei                 String?
+  dataAprovacao       DateTime?
+  valorTotalReceita   Decimal  @default(0) @db.Decimal(18, 2)
+  valorTotalDespesa   Decimal  @default(0) @db.Decimal(18, 2)
+  ativo               Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  receitasPrevistas ReceitaPrevista[]
+  dotacoes          Dotacao[]
+
+  @@unique([entidadeId, exercicio])
+  @@map("loas")
+}
+
+/// Receita prevista na LOA, por rubrica/fonte
+model ReceitaPrevista {
+  id              String   @id @default(uuid())
+  loaId           String
+  loa             Loa      @relation(fields: [loaId], references: [id], onDelete: Cascade)
+  codigoReceita   String   // codigo da rubrica de receita conforme MCASP
+  descricao       String
+  categoria       CategoriaReceita @default(OUTRAS)
+  valorPrevisto   Decimal  @db.Decimal(18, 2)
+  valorAtualizado Decimal  @db.Decimal(18, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@unique([loaId, codigoReceita])
+  @@map("receitas_previstas")
+}
+
+/// Dotacao orcamentaria (ficha de despesa)
+model Dotacao {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  loaId       String
+  loa         Loa      @relation(fields: [loaId], references: [id])
+  exercicio   Int
+
+  ficha       Int      // numero da ficha orcamentaria
+
+  orgaoId     String
+  orgao       Orgao    @relation(fields: [orgaoId], references: [id])
+  unidadeOrcamentariaId String
+  unidadeOrcamentaria   UnidadeOrcamentaria @relation(fields: [unidadeOrcamentariaId], references: [id])
+
+  funcao         String
+  subfuncao      String
+  programaId     String?
+  programa       PpaPrograma? @relation(fields: [programaId], references: [id])
+  acaoId         String?
+  acao           PpaAcao?     @relation(fields: [acaoId], references: [id])
+
+  categoriaEconomica   String // 3 = Despesas Correntes, 4 = Despesas de Capital
+  grupoDespesa         String // 1 Pessoal, 3 Outras Correntes, 4 Investimentos, etc
+  modalidadeAplicacao  String
+  elementoDespesa      String
+
+  fonteRecursoId String
+  fonteRecurso   FonteRecurso @relation(fields: [fonteRecursoId], references: [id])
+
+  valorInicial    Decimal @db.Decimal(18, 2)
+  valorAdicionado Decimal @default(0) @db.Decimal(18, 2) // soma de creditos suplementares/especiais
+  valorReduzido   Decimal @default(0) @db.Decimal(18, 2) // soma de anulacoes/cancelamentos
+  valorEmpenhado  Decimal @default(0) @db.Decimal(18, 2)
+  valorLiquidado  Decimal @default(0) @db.Decimal(18, 2)
+  valorPago       Decimal @default(0) @db.Decimal(18, 2)
+
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  empenhos            Empenho[]
+  creditosDestino     CreditoAdicional[] @relation("CreditoDestino")
+  creditosOrigem      CreditoAdicional[] @relation("CreditoOrigem")
+
+  @@unique([entidadeId, exercicio, ficha])
+  @@index([entidadeId, exercicio])
+  @@map("dotacoes")
+}
+
+/// Creditos adicionais: suplementar, especial, extraordinario
+model CreditoAdicional {
+  id              String   @id @default(uuid())
+  entidadeId      String
+  entidade        Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio       Int
+  tipo            TipoCreditoAdicional
+  numero          String
+  decreto         String?
+  data            DateTime
+  dotacaoDestinoId String
+  dotacaoDestino   Dotacao @relation("CreditoDestino", fields: [dotacaoDestinoId], references: [id])
+  dotacaoOrigemId  String?  // origem do recurso (anulacao de outra dotacao) - null para extraordinario/superavit
+  dotacaoOrigem    Dotacao? @relation("CreditoOrigem", fields: [dotacaoOrigemId], references: [id])
+  fonteRecursoDescricao String? // ex: Superavit Financeiro, Excesso de Arrecadacao
+  valor           Decimal  @db.Decimal(18, 2)
+  justificativa   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([entidadeId, exercicio])
+  @@map("creditos_adicionais")
+}
+
+// =============================================================================
+// MODULO DE EMPENHOS / LIQUIDACAO / PAGAMENTOS / RETENCOES
+// =============================================================================
+
+/// Nota de Empenho
+model Empenho {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio   Int
+  numero      Int      // numero sequencial do empenho no exercicio
+  tipo        TipoEmpenho @default(ORDINARIO)
+  data        DateTime
+
+  credorId    String
+  credor      Credor   @relation(fields: [credorId], references: [id])
+
+  dotacaoId   String
+  dotacao     Dotacao  @relation(fields: [dotacaoId], references: [id])
+
+  processo    String?
+  historico   String
+
+  valor       Decimal  @db.Decimal(18, 2) // valor original do empenho
+  valorAnulado Decimal @default(0) @db.Decimal(18, 2)
+  valorLiquidado Decimal @default(0) @db.Decimal(18, 2)
+  valorPago      Decimal @default(0) @db.Decimal(18, 2)
+
+  status      StatusEmpenho @default(NORMAL)
+  restoAPagar Boolean  @default(false)
+  exercicioRestoAPagar Int?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  movimentos    EmpenhoMovimento[]
+  liquidacoes   Liquidacao[]
+
+  @@unique([entidadeId, exercicio, numero])
+  @@index([entidadeId, exercicio, credorId])
+  @@map("empenhos")
+}
+
+/// Historico de reforcos, anulacoes e estornos do empenho
+model EmpenhoMovimento {
+  id            String   @id @default(uuid())
+  empenhoId     String
+  empenho       Empenho  @relation(fields: [empenhoId], references: [id])
+  tipo          TipoMovimentoEmpenho
+  valor         Decimal  @db.Decimal(18, 2)
+  data          DateTime @default(now())
+  justificativa String
+  usuarioId     String
+
+  createdAt     DateTime @default(now())
+
+  @@map("empenho_movimentos")
+}
+
+/// Liquidacao de despesa (parcial ou total)
+model Liquidacao {
+  id          String   @id @default(uuid())
+  empenhoId   String
+  empenho     Empenho  @relation(fields: [empenhoId], references: [id])
+  numero      Int
+  data        DateTime
+  documento   String?  // numero da Nota Fiscal / Documento Fiscal
+  tipoDocumento String? // NF, NFS-e, RECIBO, FATURA, etc
+  contratoId  String?
+  contrato    Contrato? @relation(fields: [contratoId], references: [id])
+  historico   String
+  valor       Decimal  @db.Decimal(18, 2)
+  status      StatusLiquidacao @default(LIQUIDADA)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  pagamentos  Pagamento[]
+  retencao    RetencaoCalculo?
+
+  @@unique([empenhoId, numero])
+  @@map("liquidacoes")
+}
+
+/// Pagamento (parcial ou total) de uma liquidacao
+model Pagamento {
+  id          String   @id @default(uuid())
+  liquidacaoId String
+  liquidacao  Liquidacao @relation(fields: [liquidacaoId], references: [id])
+  numero      Int
+  data        DateTime
+  valor       Decimal  @db.Decimal(18, 2)
+  formaPagamento FormaPagamento
+  contaBancariaId String
+  contaBancaria   ContaBancaria @relation(fields: [contaBancariaId], references: [id])
+  numeroOrdemPagamento String?
+  status      StatusPagamento @default(PAGO)
+  comprovanteUrl String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  movimentosBancarios MovimentoBancario[]
+
+  @@map("pagamentos")
+}
+
+/// Calculo de retencoes tributarias (INSS/IRRF) para credores Pessoa Fisica
+/// vinculado a liquidacao - obrigatorio antes do pagamento
+model RetencaoCalculo {
+  id          String   @id @default(uuid())
+  liquidacaoId String  @unique
+  liquidacao  Liquidacao @relation(fields: [liquidacaoId], references: [id])
+  credorId    String
+  credor      Credor   @relation(fields: [credorId], references: [id])
+  naturezaServicoId String?
+  naturezaServico   NaturezaServico? @relation(fields: [naturezaServicoId], references: [id])
+
+  valorBruto   Decimal @db.Decimal(18, 2)
+
+  baseInss     Decimal @default(0) @db.Decimal(18, 2)
+  inssRetido   Decimal @default(0) @db.Decimal(18, 2)
+  aliquotaInss Decimal @default(0) @db.Decimal(5, 2)
+
+  numeroDependentes Int @default(0)
+  deducaoDependentes Decimal @default(0) @db.Decimal(18, 2)
+  baseIrrf     Decimal @default(0) @db.Decimal(18, 2)
+  irrfRetido   Decimal @default(0) @db.Decimal(18, 2)
+  aliquotaIrrf Decimal @default(0) @db.Decimal(5, 2)
+
+  valorLiquido Decimal @db.Decimal(18, 2)
+
+  calculoManual    Boolean @default(false)
+  justificativaAjuste String?
+  ajustadoPorId    String?
+  ajustadoPor      Usuario? @relation("RetencaoAjustadaPor", fields: [ajustadoPorId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  historico RetencaoHistorico[]
+
+  @@map("retencao_calculos")
+}
+
+/// Historico de alteracoes manuais do calculo de retencao (auditoria especifica)
+model RetencaoHistorico {
+  id          String   @id @default(uuid())
+  retencaoId  String
+  retencao    RetencaoCalculo @relation(fields: [retencaoId], references: [id])
+  campoAlterado String
+  valorAnterior String?
+  valorNovo     String?
+  justificativa String
+  usuarioId     String
+  createdAt     DateTime @default(now())
+
+  @@map("retencao_historico")
+}
+
+// =============================================================================
+// MODULO DE TESOURARIA
+// =============================================================================
+
+/// Contas de Caixa, Bancos e Aplicacoes Financeiras
+model ContaBancaria {
+  id           String   @id @default(uuid())
+  entidadeId   String
+  entidade     Entidade @relation(fields: [entidadeId], references: [id])
+  tipo         TipoContaBancaria
+  descricao    String
+  banco        String?
+  agencia      String?
+  conta        String?
+  fonteRecursoId String?
+  fonteRecurso   FonteRecurso? @relation(fields: [fonteRecursoId], references: [id])
+  saldoInicial Decimal  @default(0) @db.Decimal(18, 2)
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  pagamentos        Pagamento[]
+  movimentos        MovimentoBancario[]
+  receitas          ReceitaLancamento[]
+  importacoes       ImportacaoArquivo[]
+
+  @@map("contas_bancarias")
+}
+
+/// Movimentos de extrato (lancados pelo sistema ou importados via OFX/CNAB)
+model MovimentoBancario {
+  id              String   @id @default(uuid())
+  contaBancariaId String
+  contaBancaria   ContaBancaria @relation(fields: [contaBancariaId], references: [id])
+  data            DateTime
+  tipo            TipoMovimentoBancario
+  historico       String
+  valor           Decimal  @db.Decimal(18, 2)
+  origem          OrigemMovimentoBancario @default(MANUAL)
+  pagamentoId     String?
+  pagamento       Pagamento? @relation(fields: [pagamentoId], references: [id])
+  receitaId       String?
+  receita         ReceitaLancamento? @relation(fields: [receitaId], references: [id])
+  importacaoId    String?
+  importacao      ImportacaoArquivo? @relation(fields: [importacaoId], references: [id])
+  conciliado      Boolean  @default(false)
+  conciliacao     ConciliacaoBancaria?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([contaBancariaId, data])
+  @@map("movimentos_bancarios")
+}
+
+/// Conciliacao bancaria - vincula movimento do extrato com lancamento do sistema
+model ConciliacaoBancaria {
+  id                  String   @id @default(uuid())
+  movimentoBancarioId String  @unique
+  movimentoBancario   MovimentoBancario @relation(fields: [movimentoBancarioId], references: [id])
+  dataConciliacao     DateTime @default(now())
+  usuarioId           String
+  observacao          String?
+
+  @@map("conciliacoes_bancarias")
+}
+
+/// Controle de importacao de arquivos OFX/CNAB
+model ImportacaoArquivo {
+  id              String   @id @default(uuid())
+  entidadeId      String
+  contaBancariaId String
+  contaBancaria   ContaBancaria @relation(fields: [contaBancariaId], references: [id])
+  tipo            TipoArquivoImportacao
+  nomeArquivo     String
+  totalRegistros  Int @default(0)
+  totalConciliados Int @default(0)
+  usuarioId       String
+  createdAt       DateTime @default(now())
+
+  movimentos MovimentoBancario[]
+
+  @@map("importacoes_arquivos")
+}
+
+// =============================================================================
+// MODULO DE RECEITAS
+// =============================================================================
+
+/// Lancamento de receita orcamentaria ou extraorcamentaria
+model ReceitaLancamento {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio   Int
+  data        DateTime
+  tipo        TipoReceita @default(ORCAMENTARIA)
+  categoria   CategoriaReceita @default(OUTRAS)
+  codigoReceita String?  // codigo da rubrica (MCASP) quando orcamentaria
+  descricao   String
+  documento   String?
+
+  fonteRecursoId String?
+  fonteRecurso   FonteRecurso? @relation(fields: [fonteRecursoId], references: [id])
+
+  contaBancariaId String
+  contaBancaria   ContaBancaria @relation(fields: [contaBancariaId], references: [id])
+
+  valor       Decimal  @db.Decimal(18, 2)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  movimentosBancarios MovimentoBancario[]
+
+  @@index([entidadeId, exercicio, categoria])
+  @@map("receita_lancamentos")
+}
+
+// =============================================================================
+// MODULO CONTABIL (PCASP)
+// =============================================================================
+
+/// Lancamento contabil (cabecalho) - partidas dobradas
+model LancamentoContabil {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio   Int
+  numero      Int
+  data        DateTime
+  historico   String
+  tipo        TipoLancamentoContabil @default(MANUAL)
+  origemModulo String? // EMPENHO, LIQUIDACAO, PAGAMENTO, RECEITA, MANUAL, ENCERRAMENTO
+  origemId    String?
+  usuarioId   String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  partidas LancamentoContabilPartida[]
+
+  @@unique([entidadeId, exercicio, numero])
+  @@index([entidadeId, exercicio, data])
+  @@map("lancamentos_contabeis")
+}
+
+/// Partidas (debito/credito) de um lancamento contabil
+model LancamentoContabilPartida {
+  id              String   @id @default(uuid())
+  lancamentoId    String
+  lancamento      LancamentoContabil @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
+  contaContabilId String
+  contaContabil   ContaContabil @relation(fields: [contaContabilId], references: [id])
+  tipo            TipoPartidaContabil
+  valor           Decimal  @db.Decimal(18, 2)
+  historico       String?
+
+  @@map("lancamento_contabil_partidas")
+}
+
+/// Controle de periodos contabeis (encerramento mensal/anual)
+model PeriodoContabil {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio   Int
+  mes         Int  // 1-12
+  status      StatusPeriodoContabil @default(ABERTO)
+  dataEncerramento DateTime?
+  usuarioEncerramentoId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([entidadeId, exercicio, mes])
+  @@map("periodos_contabeis")
+}
+
+// =============================================================================
+// MODULO DE LICITACOES E CONTRATOS
+// =============================================================================
+
+model Licitacao {
+  id           String   @id @default(uuid())
+  entidadeId   String
+  entidade     Entidade @relation(fields: [entidadeId], references: [id])
+  exercicio    Int
+  numero       String
+  modalidade   ModalidadeLicitacao
+  objeto       String
+  processo     String?
+  dataAbertura DateTime
+  valorEstimado Decimal @default(0) @db.Decimal(18, 2)
+  valorHomologado Decimal @default(0) @db.Decimal(18, 2)
+  status       StatusLicitacao @default(EM_ANDAMENTO)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  itens     LicitacaoItem[]
+  contratos Contrato[]
+
+  @@unique([entidadeId, exercicio, numero])
+  @@map("licitacoes")
+}
+
+model LicitacaoItem {
+  id          String   @id @default(uuid())
+  licitacaoId String
+  licitacao   Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  item        Int
+  descricao   String
+  unidade     String
+  quantidade  Decimal  @db.Decimal(18, 4)
+  valorEstimado Decimal @db.Decimal(18, 2)
+  vencedorCredorId String?
+  vencedorCredor   Credor? @relation(fields: [vencedorCredorId], references: [id])
+  valorVencedor    Decimal? @db.Decimal(18, 2)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([licitacaoId, item])
+  @@map("licitacao_itens")
+}
+
+model Contrato {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  numero      String
+  exercicio   Int
+  licitacaoId String?
+  licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
+  credorId    String
+  credor      Credor   @relation(fields: [credorId], references: [id])
+  objeto      String
+  dataInicio  DateTime
+  dataFim     DateTime
+  valor       Decimal  @db.Decimal(18, 2)
+  valorAditivado Decimal @default(0) @db.Decimal(18, 2)
+  status      StatusContrato @default(VIGENTE)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  aditivos    ContratoAditivo[]
+  liquidacoes Liquidacao[]
+
+  @@unique([entidadeId, exercicio, numero])
+  @@map("contratos")
+}
+
+model ContratoAditivo {
+  id          String   @id @default(uuid())
+  contratoId  String
+  contrato    Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  numero      Int
+  tipo        TipoAditivo
+  data        DateTime
+  valor       Decimal? @db.Decimal(18, 2)
+  novaDataFim DateTime?
+  descricao   String?
+
+  createdAt   DateTime @default(now())
+
+  @@unique([contratoId, numero])
+  @@map("contrato_aditivos")
+}
+
+/// Convenios (recebidos ou concedidos)
+model Convenio {
+  id            String   @id @default(uuid())
+  entidadeId    String
+  entidade      Entidade @relation(fields: [entidadeId], references: [id])
+  numero        String
+  exercicio     Int
+  concedente    String?
+  convenente    String?
+  objeto        String
+  valorTotal    Decimal  @db.Decimal(18, 2)
+  valorContrapartida Decimal @default(0) @db.Decimal(18, 2)
+  vigenciaInicio DateTime
+  vigenciaFim    DateTime
+  status        StatusConvenio @default(EM_EXECUCAO)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@unique([entidadeId, exercicio, numero])
+  @@map("convenios")
+}
+
+// =============================================================================
+// MODULO DE ALMOXARIFADO
+// =============================================================================
+
+model Material {
+  id            String   @id @default(uuid())
+  entidadeId    String
+  entidade      Entidade @relation(fields: [entidadeId], references: [id])
+  codigo        String
+  descricao     String
+  unidade       String
+  categoria     String?
+  estoqueAtual  Decimal  @default(0) @db.Decimal(18, 4)
+  estoqueMinimo Decimal  @default(0) @db.Decimal(18, 4)
+  valorMedio    Decimal  @default(0) @db.Decimal(18, 4)
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  movimentos MovimentoEstoque[]
+
+  @@unique([entidadeId, codigo])
+  @@map("materiais")
+}
+
+model MovimentoEstoque {
+  id          String   @id @default(uuid())
+  materialId  String
+  material    Material @relation(fields: [materialId], references: [id])
+  tipo        TipoMovimentoEstoque
+  data        DateTime
+  quantidade  Decimal  @db.Decimal(18, 4)
+  valorUnitario Decimal @default(0) @db.Decimal(18, 4)
+  documento   String?
+  origemModulo String? // COMPRAS, EMPENHO, MANUAL
+  origemId     String?
+  observacao   String?
+  usuarioId    String
+
+  createdAt   DateTime @default(now())
+
+  @@map("movimentos_estoque")
+}
+
+// =============================================================================
+// MODULO DE PATRIMONIO
+// =============================================================================
+
+model Bem {
+  id              String   @id @default(uuid())
+  entidadeId      String
+  entidade        Entidade @relation(fields: [entidadeId], references: [id])
+  numeroTombamento String
+  descricao       String
+  categoria       CategoriaBem
+  dataAquisicao   DateTime
+  valorAquisicao  Decimal  @db.Decimal(18, 2)
+  valorAtual      Decimal  @db.Decimal(18, 2)
+  vidaUtilAnos    Int?
+  taxaDepreciacaoAnual Decimal? @db.Decimal(5, 2)
+  localizacao     String?
+  responsavelCredorId String?
+  responsavelCredor   Credor? @relation(fields: [responsavelCredorId], references: [id])
+  status          StatusBem @default(ATIVO)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  movimentacoes BemMovimentacao[]
+
+  @@unique([entidadeId, numeroTombamento])
+  @@map("bens")
+}
+
+model BemMovimentacao {
+  id          String   @id @default(uuid())
+  bemId       String
+  bem         Bem      @relation(fields: [bemId], references: [id])
+  tipo        TipoMovimentoBem
+  data        DateTime
+  valor       Decimal? @db.Decimal(18, 2)
+  localOrigem String?
+  localDestino String?
+  descricao   String?
+  usuarioId   String
+
+  createdAt   DateTime @default(now())
+
+  @@map("bem_movimentacoes")
+}
+
+// =============================================================================
+// INTELIGENCIA ARTIFICIAL - SUGESTOES E PARECERES
+// =============================================================================
+
+model IaSugestao {
+  id          String   @id @default(uuid())
+  entidadeId  String
+  entidade    Entidade @relation(fields: [entidadeId], references: [id])
+  modulo      String   // EMPENHO, LIQUIDACAO, LANCAMENTO_CONTABIL, RETENCAO, etc
+  registroId  String?
+  tipo        TipoSugestaoIA
+  titulo      String
+  conteudo    String   // texto da sugestao/parecer (markdown)
+  dadosContexto Json?
+  status      StatusSugestaoIA @default(PENDENTE)
+  usuarioId   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([entidadeId, modulo, status])
+  @@map("ia_sugestoes")
+}

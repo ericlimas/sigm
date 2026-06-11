@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 213 78% 28%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 94%;
+    --secondary-foreground: 213 78% 28%;
+
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 26 83% 14%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 71% 35%;
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 26 83% 14%;
+
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 213 78% 28%;
+
+    --sidebar: 213 78% 22%;
+    --sidebar-foreground: 210 40% 98%;
+
+    --radius: 0.4rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-size: 13px;
+  }
+}
+
+/* Scrollbars discretas, estilo aplicacao desktop */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Grids de consulta - linhas compactas estilo ERP */
+.data-grid table {
+  font-size: 12.5px;
+}
+.data-grid th {
+  @apply bg-secondary text-secondary-foreground font-semibold uppercase text-[11px] tracking-wide;
+}
+.data-grid tr:nth-child(even) td {
+  background-color: hsl(var(--muted) / 0.4);
+}
+.data-grid tr:hover td {
+  background-color: hsl(var(--accent) / 0.12);
+}
