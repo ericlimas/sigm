@@ -50,6 +50,7 @@ export const MENU: MenuGroup[] = [
       { path: "/plano-contas", label: "Plano de Contas (PCASP)", modulo: "PLANO_CONTAS" },
       { path: "/naturezas-servico", label: "Naturezas de Servico", modulo: "RETENCOES" },
       { path: "/usuarios", label: "Usuarios", modulo: "USUARIOS" },
+      { path: "/configuracoes", label: "Configuracoes", modulo: "USUARIOS" },
     ],
   },
   {

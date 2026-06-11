@@ -7,7 +7,7 @@ import { Plus, Printer, RotateCcw, TrendingUp, Ban } from "lucide-react";
 import { api, getErrorMessage, type PaginatedResponse } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, formatDate, formatDateExtenso, formatValorAsterisco, nomeEstado } from "@/lib/utils";
+import { formatCurrency, formatDate, formatValorAsterisco } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
 import DataTable, { type DataTableColumn } from "@/components/shared/DataTable";
 import PaginationBar from "@/components/shared/PaginationBar";
@@ -55,12 +55,26 @@ const MOVIMENTO_LABELS: Record<TipoMovimentoEmpenho, string> = {
 
 const LARGURA_DOC = 81;
 
+interface ResponsavelImprimir {
+  nome: string | null;
+  cpf?: string | null;
+  documento?: string | null;
+  cargo: string | null;
+}
+
 interface EmpenhoImprimirData {
   numero: string;
   exercicio: number;
   tipo: TipoEmpenho;
   data: string;
-  entidade: { nome: string; municipio: string; uf: string };
+  entidade: {
+    nome: string;
+    municipio: string;
+    uf: string;
+    ordenador: ResponsavelImprimir;
+    contador: ResponsavelImprimir;
+    diretorFinanceiro: ResponsavelImprimir;
+  };
   credor: {
     nome: string;
     cpfCnpj: string;
@@ -78,21 +92,37 @@ interface EmpenhoImprimirData {
   };
   dotacao: {
     ficha: number;
+    orgaoCodigo: string;
     orgao: string;
+    unidadeCodigo: string;
     unidade: string;
     funcao: string;
     subfuncao: string;
+    programaCodigo?: string | null;
     programa?: string | null;
+    acaoCodigo?: string | null;
     acao?: string | null;
     elementoDespesa: string;
     fonteRecurso: string;
   };
+  processo: string | null;
   historico: string;
   valor: number;
   valorAnulado: number;
   valorLiquido: number;
   valorExtenso: string;
   descontos: number;
+  saldoDotacao: {
+    saldoAnterior: number;
+    valorEmpenhado: number;
+    saldoAtual: number;
+    totalEmpenhado: number;
+    valorLiquidado: number;
+    desconto: number;
+    valorLiquido: number;
+    saldoALiquidar: number;
+    valorALiquidar: number;
+  };
   usuarioLogado: string;
 }
 
@@ -102,13 +132,18 @@ function centralizar(texto: string, largura = LARGURA_DOC): string {
   return " ".repeat(Math.floor(espacos / 2)) + texto;
 }
 
+function alinharDireita(texto: string, largura = LARGURA_DOC): string {
+  if (texto.length >= largura) return texto;
+  return " ".repeat(largura - texto.length) + texto;
+}
+
 function campo(label: string, valor: string, largura = 17): string {
   const rotulo = label.length >= largura ? label : label.padEnd(largura, ".");
   return `${rotulo}: ${valor}`;
 }
 
 /** Abre uma janela separada apenas com o texto e aciona a impressao (evita conflitos de CSS/print com a SPA) */
-function imprimirOrdemPagamento(texto: string): void {
+function imprimirNotaEmpenho(texto: string): void {
   const janela = window.open("", "_blank", "width=900,height=700");
   if (!janela) return;
 
@@ -117,7 +152,7 @@ function imprimirOrdemPagamento(texto: string): void {
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
-<title>Ordem de Pagamento</title>
+<title>Nota de Empenho</title>
 <style>
   body { margin: 16px; font-family: "Courier New", Courier, monospace; font-size: 11px; line-height: 1.5; white-space: pre; color: #000; background: #fff; }
 </style>
@@ -129,56 +164,76 @@ function imprimirOrdemPagamento(texto: string): void {
   janela.print();
 }
 
-function buildOrdemPagamentoTexto(d: EmpenhoImprimirData): string {
+/** Linha com duas colunas "label..: valor" lado a lado, usada no resumo do saldo da dotacao */
+function linhaSaldo(labelEsq: string, valorEsq: number, labelDir: string, valorDir: number): string {
+  const esq = campo(labelEsq, formatValorAsterisco(valorEsq, 12), 17);
+  const dir = campo(labelDir, formatValorAsterisco(valorDir, 12), 17);
+  return `${esq} : ${dir}`;
+}
+
+/** Linha com nome + documento/cargo de um responsavel, alinhados a direita (assinatura) */
+function linhasResponsavel(responsavel: ResponsavelImprimir, labelDocumento: "CPF" | "CRC"): string[] {
+  if (!responsavel.nome) return [];
+  const documento = responsavel.cpf ?? responsavel.documento;
+  const linhas = [alinharDireita(responsavel.nome)];
+  const detalhe = [documento ? `${labelDocumento}: ${documento}` : null, responsavel.cargo].filter(Boolean).join(" / ");
+  if (detalhe) linhas.push(alinharDireita(detalhe));
+  return linhas;
+}
+
+function buildNotaEmpenhoTexto(d: EmpenhoImprimirData): string {
   const linhaSep = "-".repeat(LARGURA_DOC);
   const endereco = [d.credor.logradouro, d.credor.numero ? `Nº ${d.credor.numero}` : null, d.credor.complemento]
     .filter(Boolean)
     .join(", ");
 
+  const classifOrcamentaria = [d.dotacao.funcao, d.dotacao.subfuncao, d.dotacao.programaCodigo, d.dotacao.acaoCodigo]
+    .filter(Boolean)
+    .join(".");
+  const classifDescricao = d.dotacao.programa ?? d.dotacao.acao ?? "-";
+  const saldo = d.saldoDotacao;
+
   const linhas: string[] = [];
   linhas.push(centralizar(d.entidade.nome.toUpperCase()));
-  linhas.push(centralizar(`ESTADO DE ${nomeEstado(d.entidade.uf).toUpperCase()}`));
-  linhas.push(centralizar(`ORDEM DE PAGAMENTO Nº ${d.numero}`));
-  linhas.push(centralizar(`EMPENHO ${TIPO_LABELS[d.tipo].toUpperCase()} - DESPESA ORCAMENTARIA`));
-  linhas.push(` Exercício de: ${d.exercicio}    Data: ${formatDate(d.data)}    Ficha: ${String(d.dotacao.ficha).padStart(6, "0")}`);
-  linhas.push(linhaSep);
-  linhas.push(campo("Órgão", d.dotacao.orgao));
-  linhas.push(campo("Unidade", d.dotacao.unidade));
-  linhas.push(campo("Função/Subfunção", `${d.dotacao.funcao} / ${d.dotacao.subfuncao}`));
-  if (d.dotacao.programa || d.dotacao.acao) {
-    linhas.push(campo("Programa/Ação", `${d.dotacao.programa ?? "-"} / ${d.dotacao.acao ?? "-"}`));
-  }
-  linhas.push(campo("Elemento Despesa", d.dotacao.elementoDespesa));
-  linhas.push(campo("Fonte de Recurso", d.dotacao.fonteRecurso));
   linhas.push("");
-  linhas.push(" Fica o Serviço de Finanças autorizado a pagar a importância de");
-  linhas.push(`R$ ${formatValorAsterisco(d.valorLiquido)} ,${d.valorExtenso}.`);
-  linhas.push("ao Credor abaixo mencionado.");
+  linhas.push(centralizar(`NOTA DE EMPENHO Nº ${d.numero}`));
+  linhas.push("");
+  linhas.push("O ordenador da despesa, para efeito da execução orçamentária, determina que");
+  linhas.push("seja empenhada neste exercício a importância abaixo discriminada.");
+  linhas.push("");
+  linhas.push(`Orçamento de: ${d.exercicio}    Tipo: ${TIPO_LABELS[d.tipo]}    Data: ${formatDate(d.data)}    Ficha: ${String(d.dotacao.ficha).padStart(6, "0")}`);
+  linhas.push(linhaSep);
+  linhas.push(campo("Órgão", `${d.dotacao.orgaoCodigo} - ${d.dotacao.orgao}`, 21));
+  linhas.push(campo("Unidade", `${d.dotacao.unidadeCodigo} - ${d.dotacao.unidade}`, 21));
+  linhas.push(campo("Classif. Orçamentária", `${classifOrcamentaria} - ${classifDescricao}`, 21));
+  linhas.push(campo("Elemento da Despesa", d.dotacao.elementoDespesa, 21));
+  linhas.push(campo("Fonte de Recurso", d.dotacao.fonteRecurso, 21));
+  linhas.push(linhaSep);
   linhas.push(`Credor...: ${d.credor.nome}`);
   if (endereco) linhas.push(`Endereço.: ${endereco}    Bairro: ${d.credor.bairro ?? "-"}    CEP: ${d.credor.cep ?? "-"}`);
-  linhas.push(`Cidade...: ${d.credor.municipio ?? "-"}    Est: ${d.credor.uf ?? "-"}`);
-  linhas.push(`Insc. Est: ${d.credor.inscricaoEstadual ?? "-"}    CGC/CPF: ${d.credor.cpfCnpj}`);
+  linhas.push(`Cidade...: ${d.credor.municipio ?? "-"} - ${d.credor.uf ?? "-"}    CNPJ/CPF: ${d.credor.cpfCnpj}`);
   if (d.credor.banco) linhas.push(`Banco ...: ${d.credor.banco}    Agência..: ${d.credor.agencia ?? "-"}    Conta ..: ${d.credor.conta ?? "-"}`);
+  linhas.push(linhaSep);
+  linhas.push(`Pela presente fica empenhada a importância de R$ ${formatValorAsterisco(d.valorLiquido)}`);
+  linhas.push(`${d.valorExtenso}.`);
   linhas.push(`Hist.: ${d.historico}`);
-  linhas.push(`VALOR DA ORDEM DE PAGAMENTO: ${formatValorAsterisco(d.valor)}`);
-  linhas.push(`DESCONTOS .................: ${formatValorAsterisco(d.descontos)}`);
-  linhas.push(`VALOR LÍQUIDO .............: ${formatValorAsterisco(d.valorLiquido)}`);
   linhas.push("");
-  linhas.push(" Contador(a)/Contabilista: _______________________________");
+  linhas.push(`Licitação.: Não se Aplica            Processo Nº.: ${d.processo ?? "-"}`);
   linhas.push("");
-  linhas.push(`Pague-se ${d.entidade.nome}, ${formatDateExtenso(d.data)}.`);
-  linhas.push(" Ordenador da Despesa: ____________________________________________");
+  linhas.push(`Data: ${formatDate(d.data)}    Ordenador da Despesa: ____________________________________`);
+  linhas.push(...linhasResponsavel(d.entidade.ordenador, "CPF"));
   linhas.push(linhaSep);
-  linhas.push(centralizar("Q U I T A Ç Ã O"));
-  linhas.push(`Recebi(emos) do(a) ${d.entidade.nome}, a importância de`);
-  linhas.push(`R$ ${formatValorAsterisco(d.valorLiquido)} ,${d.valorExtenso}`);
-  linhas.push("referente a Ordem de Pagamento acima mencionada, da qual é dada plena quitação.");
-  linhas.push("___/___/_____   __________________   ______________________________________");
-  linhas.push("    Data         Identidade/CPF/CGC      Assinatura do Credor ou seu Procurador");
+  linhas.push(centralizar("Sendo o saldo da dotação orçamentária o abaixo demonstrado:"));
+  linhas.push("");
+  linhas.push(linhaSaldo("SALDO ANTERIOR", saldo.saldoAnterior, "VALOR LIQUIDADO", saldo.valorLiquidado));
+  linhas.push(linhaSaldo("VALOR EMPENHADO", saldo.valorEmpenhado, "DESCONTO", saldo.desconto));
+  linhas.push(linhaSaldo("SALDO ATUAL", saldo.saldoAtual, "VALOR LIQUIDO", saldo.valorLiquido));
+  linhas.push(linhaSaldo("TOTAL EMPENHADO", saldo.totalEmpenhado, "SALDO A LIQUIDAR", saldo.saldoALiquidar));
+  linhas.push(campo("VALOR A LIQUIDAR", formatValorAsterisco(saldo.valorALiquidar, 12), 17));
+  linhas.push("");
+  linhas.push(`Data: ${formatDate(d.data)}    Contador(a)/Contabilista: ________________________________`);
+  linhas.push(...linhasResponsavel(d.entidade.contador, "CRC"));
   linhas.push(linhaSep);
-  linhas.push(`BANCO: ${d.credor.banco ?? "-"}    CONTA: ${d.credor.conta ?? "-"}    CHEQUE:`);
-  linhas.push(linhaSep);
-  linhas.push("Data: ___/___/____    Tesoureiro: ____________________________________________");
   linhas.push(`Usuário: ${d.usuarioLogado}`);
 
   return linhas.join("\n");
@@ -366,7 +421,7 @@ export default function EmpenhosPage() {
   let erroImpressao: string | null = null;
   if (printQuery.data) {
     try {
-      textoImpressao = buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData);
+      textoImpressao = buildNotaEmpenhoTexto(printQuery.data as EmpenhoImprimirData);
     } catch {
       erroImpressao = "Nao foi possivel montar o documento de impressao. O sistema pode estar em atualizacao, tente novamente em instantes.";
     }
@@ -651,7 +706,7 @@ export default function EmpenhosPage() {
       <Dialog open={printOpen} onOpenChange={setPrintOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Ordem de Pagamento</DialogTitle>
+            <DialogTitle>Nota de Empenho</DialogTitle>
           </DialogHeader>
           {printQuery.isLoading && (
             <p className="p-4 text-sm text-muted-foreground">Carregando dados para impressao...</p>
@@ -669,7 +724,7 @@ export default function EmpenhosPage() {
             <Button type="button" variant="outline" onClick={() => setPrintOpen(false)}>Fechar</Button>
             <Button
               type="button"
-              onClick={() => textoImpressao && imprimirOrdemPagamento(textoImpressao)}
+              onClick={() => textoImpressao && imprimirNotaEmpenho(textoImpressao)}
               disabled={!textoImpressao}
             >
               <Printer className="mr-1.5 h-4 w-4" />

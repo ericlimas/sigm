@@ -23,6 +23,7 @@ import transparenciaRoutes from "@/modules/transparencia/transparencia.routes";
 import auditoriaRoutes from "@/modules/auditoria/auditoria.routes";
 import iaRoutes from "@/modules/ia/ia.routes";
 import usuariosRoutes from "@/modules/usuarios/usuarios.routes";
+import entidadeRoutes from "@/modules/entidade/entidade.routes";
 import { authenticate } from "@/middleware/auth";
 
 const router = Router();
@@ -56,5 +57,6 @@ router.use("/patrimonio", patrimonioRoutes);
 router.use("/auditoria", auditoriaRoutes);
 router.use("/ia", iaRoutes);
 router.use("/usuarios", usuariosRoutes);
+router.use("/entidade", entidadeRoutes);
 
 export default router;

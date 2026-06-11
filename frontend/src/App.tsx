@@ -11,6 +11,7 @@ import OrgaosPage from "@/pages/cadastros/OrgaosPage";
 import PlanoContasPage from "@/pages/cadastros/PlanoContasPage";
 import NaturezasServicoPage from "@/pages/cadastros/NaturezasServicoPage";
 import UsuariosPage from "@/pages/cadastros/UsuariosPage";
+import ConfiguracoesPage from "@/pages/cadastros/ConfiguracoesPage";
 import PpaPage from "@/pages/orcamento/PpaPage";
 import LdoPage from "@/pages/orcamento/LdoPage";
 import LoaPage from "@/pages/orcamento/LoaPage";
@@ -40,6 +41,7 @@ const pageOverrides: Record<string, ComponentType> = {
   "/plano-contas": PlanoContasPage,
   "/naturezas-servico": NaturezasServicoPage,
   "/usuarios": UsuariosPage,
+  "/configuracoes": ConfiguracoesPage,
   "/orcamento/ppa": PpaPage,
   "/orcamento/ldo": LdoPage,
   "/orcamento/loa": LoaPage,

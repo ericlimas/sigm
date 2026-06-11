@@ -16,3 +16,15 @@ export interface PerfilOption {
   nome: string;
   descricao: string | null;
 }
+
+export interface EntidadeConfiguracao {
+  ordenadorNome: string | null;
+  ordenadorCpf: string | null;
+  ordenadorCargo: string | null;
+  contadorNome: string | null;
+  contadorDocumento: string | null;
+  contadorCargo: string | null;
+  diretorFinanceiroNome: string | null;
+  diretorFinanceiroCpf: string | null;
+  diretorFinanceiroCargo: string | null;
+}

@@ -266,6 +266,18 @@ model Entidade {
   uf          String       @db.Char(2)
   brasao      String?
   ativo       Boolean      @default(true)
+
+  // Responsaveis impressos na Nota de Empenho
+  ordenadorNome  String?
+  ordenadorCpf   String?
+  ordenadorCargo String?
+  contadorNome     String?
+  contadorDocumento String?
+  contadorCargo    String?
+  diretorFinanceiroNome  String?
+  diretorFinanceiroCpf   String?
+  diretorFinanceiroCargo String?
+
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   deletedAt   DateTime?

@@ -119,9 +119,15 @@ router.get("/:id/imprimir", requirePermissao("EMPENHOS", "VISUALIZAR"), async (r
   if (!empenho) throw AppError.notFound("Empenho nao encontrado");
 
   const valorLiquido = Number(empenho.valor) - Number(empenho.valorAnulado);
+  const dotacao = empenho.dotacao;
+
+  // Saldo da dotacao orcamentaria: o valor empenhado da dotacao ja inclui este empenho
+  const saldoAtual = saldoDisponivelDotacao(dotacao);
+  const saldoAnterior = saldoAtual + valorLiquido;
+  const saldoALiquidar = valorLiquido - Number(empenho.valorLiquidado);
 
   res.json({
-    documento: "ORDEM DE PAGAMENTO",
+    documento: "NOTA DE EMPENHO",
     numero: `${empenho.numero}/${empenho.exercicio}`,
     exercicio: empenho.exercicio,
     tipo: empenho.tipo,
@@ -130,6 +136,21 @@ router.get("/:id/imprimir", requirePermissao("EMPENHOS", "VISUALIZAR"), async (r
       nome: empenho.entidade.nome,
       municipio: empenho.entidade.municipio,
       uf: empenho.entidade.uf,
+      ordenador: {
+        nome: empenho.entidade.ordenadorNome,
+        cpf: empenho.entidade.ordenadorCpf,
+        cargo: empenho.entidade.ordenadorCargo,
+      },
+      contador: {
+        nome: empenho.entidade.contadorNome,
+        documento: empenho.entidade.contadorDocumento,
+        cargo: empenho.entidade.contadorCargo,
+      },
+      diretorFinanceiro: {
+        nome: empenho.entidade.diretorFinanceiroNome,
+        cpf: empenho.entidade.diretorFinanceiroCpf,
+        cargo: empenho.entidade.diretorFinanceiroCargo,
+      },
     },
     credor: {
       nome: empenho.credor.nome,
@@ -147,15 +168,19 @@ router.get("/:id/imprimir", requirePermissao("EMPENHOS", "VISUALIZAR"), async (r
       conta: empenho.credor.conta,
     },
     dotacao: {
-      ficha: empenho.dotacao.ficha,
-      orgao: empenho.dotacao.orgao.nome,
-      unidade: empenho.dotacao.unidadeOrcamentaria.nome,
-      funcao: empenho.dotacao.funcao,
-      subfuncao: empenho.dotacao.subfuncao,
-      programa: empenho.dotacao.programa?.nome,
-      acao: empenho.dotacao.acao?.nome,
-      elementoDespesa: empenho.dotacao.elementoDespesa,
-      fonteRecurso: `${empenho.dotacao.fonteRecurso.codigo} - ${empenho.dotacao.fonteRecurso.descricao}`,
+      ficha: dotacao.ficha,
+      orgaoCodigo: dotacao.orgao.codigo,
+      orgao: dotacao.orgao.nome,
+      unidadeCodigo: dotacao.unidadeOrcamentaria.codigo,
+      unidade: dotacao.unidadeOrcamentaria.nome,
+      funcao: dotacao.funcao,
+      subfuncao: dotacao.subfuncao,
+      programaCodigo: dotacao.programa?.codigo,
+      programa: dotacao.programa?.nome,
+      acaoCodigo: dotacao.acao?.codigo,
+      acao: dotacao.acao?.nome,
+      elementoDespesa: dotacao.elementoDespesa,
+      fonteRecurso: `${dotacao.fonteRecurso.codigo} - ${dotacao.fonteRecurso.descricao}`,
     },
     processo: empenho.processo,
     historico: empenho.historico,
@@ -164,6 +189,17 @@ router.get("/:id/imprimir", requirePermissao("EMPENHOS", "VISUALIZAR"), async (r
     valorLiquido,
     valorExtenso: valorPorExtenso(valorLiquido),
     descontos: 0,
+    saldoDotacao: {
+      saldoAnterior,
+      valorEmpenhado: valorLiquido,
+      saldoAtual,
+      totalEmpenhado: Number(dotacao.valorEmpenhado),
+      valorLiquidado: Number(empenho.valorLiquidado),
+      desconto: 0,
+      valorLiquido,
+      saldoALiquidar,
+      valorALiquidar: saldoALiquidar,
+    },
     movimentos: empenho.movimentos,
     usuarioLogado: usuarioNome,
   });
