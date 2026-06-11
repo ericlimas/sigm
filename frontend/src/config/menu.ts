@@ -7,10 +7,8 @@ import {
   FileSpreadsheet,
   Banknote,
   Calculator,
-  Gavel,
   FileText,
   Handshake,
-  Boxes,
   Package,
   Eye,
   ShieldCheck,
@@ -51,6 +49,7 @@ export const MENU: MenuGroup[] = [
       { path: "/fontes-recurso", label: "Fontes de Recurso", modulo: "FONTES_RECURSO" },
       { path: "/plano-contas", label: "Plano de Contas (PCASP)", modulo: "PLANO_CONTAS" },
       { path: "/naturezas-servico", label: "Naturezas de Servico", modulo: "RETENCOES" },
+      { path: "/usuarios", label: "Usuarios", modulo: "USUARIOS" },
     ],
   },
   {
@@ -95,13 +94,6 @@ export const MENU: MenuGroup[] = [
     modulo: "CONTABIL",
   },
   {
-    key: "licitacoes",
-    label: "Licitacoes",
-    icon: Gavel,
-    path: "/licitacoes",
-    modulo: "LICITACOES",
-  },
-  {
     key: "contratos",
     label: "Contratos",
     icon: FileText,
@@ -114,10 +106,8 @@ export const MENU: MenuGroup[] = [
     key: "patrimonio",
     label: "Patrimonio",
     icon: Package,
-    items: [
-      { path: "/almoxarifado", label: "Almoxarifado", modulo: "ALMOXARIFADO" },
-      { path: "/patrimonio", label: "Bens Patrimoniais", modulo: "PATRIMONIO" },
-    ],
+    path: "/patrimonio",
+    modulo: "PATRIMONIO",
   },
   {
     key: "transparencia",
@@ -151,7 +141,6 @@ export const SHORTCUT_ICONS: { path: string; label: string; icon: LucideIcon; mo
   { path: "/pagamentos", label: "Pagamentos", icon: Banknote, modulo: "PAGAMENTOS" },
   { path: "/tesouraria/contas", label: "Tesouraria", icon: Building2, modulo: "TESOURARIA" },
   { path: "/contabil", label: "Contabil", icon: Calculator, modulo: "CONTABIL" },
-  { path: "/almoxarifado", label: "Almoxarifado", icon: Boxes, modulo: "ALMOXARIFADO" },
   { path: "/contratos", label: "Contratos", icon: Handshake, modulo: "CONTRATOS" },
 ];
 

@@ -10,6 +10,7 @@ import CredoresPage from "@/pages/cadastros/CredoresPage";
 import OrgaosPage from "@/pages/cadastros/OrgaosPage";
 import PlanoContasPage from "@/pages/cadastros/PlanoContasPage";
 import NaturezasServicoPage from "@/pages/cadastros/NaturezasServicoPage";
+import UsuariosPage from "@/pages/cadastros/UsuariosPage";
 import PpaPage from "@/pages/orcamento/PpaPage";
 import LdoPage from "@/pages/orcamento/LdoPage";
 import LoaPage from "@/pages/orcamento/LoaPage";
@@ -24,10 +25,8 @@ import MovimentosPage from "@/pages/tesouraria/MovimentosPage";
 import RelatoriosTesourariaPage from "@/pages/tesouraria/RelatoriosTesourariaPage";
 import ReceitasPage from "@/pages/receitas/ReceitasPage";
 import ContabilPage from "@/pages/contabil/ContabilPage";
-import LicitacoesPage from "@/pages/licitacoes/LicitacoesPage";
 import ContratosPage from "@/pages/contratos/ContratosPage";
 import ConveniosPage from "@/pages/contratos/ConveniosPage";
-import AlmoxarifadoPage from "@/pages/almoxarifado/AlmoxarifadoPage";
 import PatrimonioPage from "@/pages/patrimonio/PatrimonioPage";
 import TransparenciaPage from "@/pages/transparencia/TransparenciaPage";
 import AuditoriaPage from "@/pages/auditoria/AuditoriaPage";
@@ -40,6 +39,7 @@ const pageOverrides: Record<string, ComponentType> = {
   "/orgaos": OrgaosPage,
   "/plano-contas": PlanoContasPage,
   "/naturezas-servico": NaturezasServicoPage,
+  "/usuarios": UsuariosPage,
   "/orcamento/ppa": PpaPage,
   "/orcamento/ldo": LdoPage,
   "/orcamento/loa": LoaPage,
@@ -54,10 +54,8 @@ const pageOverrides: Record<string, ComponentType> = {
   "/tesouraria/relatorios": RelatoriosTesourariaPage,
   "/receitas": ReceitasPage,
   "/contabil": ContabilPage,
-  "/licitacoes": LicitacoesPage,
   "/contratos": ContratosPage,
   "/convenios": ConveniosPage,
-  "/almoxarifado": AlmoxarifadoPage,
   "/patrimonio": PatrimonioPage,
   "/transparencia": TransparenciaPage,
   "/auditoria": AuditoriaPage,

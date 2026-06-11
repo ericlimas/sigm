@@ -30,6 +30,7 @@ const PERMISSOES: [string, string][] = [
   ["PATRIMONIO", "VISUALIZAR"], ["PATRIMONIO", "CRIAR"], ["PATRIMONIO", "EDITAR"], ["PATRIMONIO", "EXCLUIR"],
   ["AUDITORIA", "VISUALIZAR"],
   ["IA", "VISUALIZAR"], ["IA", "GERAR"], ["IA", "AVALIAR"],
+  ["USUARIOS", "VISUALIZAR"], ["USUARIOS", "CRIAR"], ["USUARIOS", "EDITAR"], ["USUARIOS", "EXCLUIR"],
 ];
 
 function modAll(modulo: string): [string, string][] {
