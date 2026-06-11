@@ -59,6 +59,11 @@ export interface TabelaIrrfDeducao {
   vigenciaInicio: string;
   vigenciaFim: string | null;
   valorPorDependente: number;
+  limiteFaixa1: number | null;
+  reducaoMaxima: number | null;
+  limiteFaixa2: number | null;
+  constanteReducao: number | null;
+  coeficienteReducao: number | null;
   ativo: boolean;
 }
 

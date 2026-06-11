@@ -679,6 +679,16 @@ model TabelaIrrfDeducao {
   vigenciaInicio DateTime
   vigenciaFim    DateTime?
   valorPorDependente Decimal @db.Decimal(15, 2)
+  /// Limite de rendimento tributavel para isencao total (Lei 15.270/2025)
+  limiteFaixa1       Decimal? @db.Decimal(15, 2)
+  /// Reducao maxima do imposto, atingida no limite da faixa 1
+  reducaoMaxima      Decimal? @db.Decimal(15, 2)
+  /// Limite de rendimento tributavel ate onde a reducao decrescente se aplica
+  limiteFaixa2       Decimal? @db.Decimal(15, 2)
+  /// Constante da formula de reducao: reducao = constante - coeficiente * base
+  constanteReducao   Decimal? @db.Decimal(15, 2)
+  /// Coeficiente da formula de reducao
+  coeficienteReducao Decimal? @db.Decimal(10, 6)
   ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
 

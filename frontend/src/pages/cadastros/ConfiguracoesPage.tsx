@@ -616,6 +616,11 @@ const irrfDeducaoSchema = z.object({
   vigenciaInicio: z.string().min(1, "Informe a vigencia"),
   vigenciaFim: z.string().optional(),
   valorPorDependente: z.preprocess((v) => (v === "" || v === undefined ? 0 : Number(v)), z.number().min(0)),
+  limiteFaixa1: z.string().optional(),
+  reducaoMaxima: z.string().optional(),
+  limiteFaixa2: z.string().optional(),
+  constanteReducao: z.string().optional(),
+  coeficienteReducao: z.string().optional(),
   ativo: z.boolean().optional(),
 });
 
@@ -625,8 +630,17 @@ const DEFAULT_DEDUCAO_VALUES: IrrfDeducaoFormValues = {
   vigenciaInicio: "",
   vigenciaFim: "",
   valorPorDependente: 0,
+  limiteFaixa1: "",
+  reducaoMaxima: "",
+  limiteFaixa2: "",
+  constanteReducao: "",
+  coeficienteReducao: "",
   ativo: true,
 };
+
+function numeroOuNulo(value: string | undefined): number | null {
+  return value === "" || value === undefined ? null : Number(value);
+}
 
 function TabelaIrrfDeducaoCard() {
   const { toast } = useToast();
@@ -663,6 +677,11 @@ function TabelaIrrfDeducaoCard() {
       vigenciaInicio: toInputDate(deducao.vigenciaInicio),
       vigenciaFim: toInputDate(deducao.vigenciaFim),
       valorPorDependente: deducao.valorPorDependente,
+      limiteFaixa1: deducao.limiteFaixa1 != null ? String(deducao.limiteFaixa1) : "",
+      reducaoMaxima: deducao.reducaoMaxima != null ? String(deducao.reducaoMaxima) : "",
+      limiteFaixa2: deducao.limiteFaixa2 != null ? String(deducao.limiteFaixa2) : "",
+      constanteReducao: deducao.constanteReducao != null ? String(deducao.constanteReducao) : "",
+      coeficienteReducao: deducao.coeficienteReducao != null ? String(deducao.coeficienteReducao) : "",
       ativo: deducao.ativo,
     });
     setDialogOpen(true);
@@ -670,7 +689,15 @@ function TabelaIrrfDeducaoCard() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: IrrfDeducaoFormValues) => {
-      const payload = { ...values, vigenciaFim: values.vigenciaFim || null };
+      const payload = {
+        ...values,
+        vigenciaFim: values.vigenciaFim || null,
+        limiteFaixa1: numeroOuNulo(values.limiteFaixa1),
+        reducaoMaxima: numeroOuNulo(values.reducaoMaxima),
+        limiteFaixa2: numeroOuNulo(values.limiteFaixa2),
+        constanteReducao: numeroOuNulo(values.constanteReducao),
+        coeficienteReducao: numeroOuNulo(values.coeficienteReducao),
+      };
       if (editing) return (await api.put(`/tabelas-tributarias/irrf-deducoes/${editing.id}`, payload)).data;
       return (await api.post("/tabelas-tributarias/irrf-deducoes", payload)).data;
     },
@@ -758,6 +785,28 @@ function TabelaIrrfDeducaoCard() {
             <Field label="Valor por dependente (R$)" htmlFor="valorPorDependente" error={form.formState.errors.valorPorDependente?.message}>
               <Input id="valorPorDependente" type="number" step="0.01" min={0} {...form.register("valorPorDependente")} />
             </Field>
+            <div className="border-t pt-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Reducao do imposto (Lei 15.270/2025)
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Limite faixa 1 (R$)" htmlFor="limiteFaixa1">
+                  <Input id="limiteFaixa1" type="number" step="0.01" min={0} {...form.register("limiteFaixa1")} />
+                </Field>
+                <Field label="Reducao maxima (R$)" htmlFor="reducaoMaxima">
+                  <Input id="reducaoMaxima" type="number" step="0.01" min={0} {...form.register("reducaoMaxima")} />
+                </Field>
+                <Field label="Limite faixa 2 (R$)" htmlFor="limiteFaixa2">
+                  <Input id="limiteFaixa2" type="number" step="0.01" min={0} {...form.register("limiteFaixa2")} />
+                </Field>
+                <Field label="Constante da reducao (R$)" htmlFor="constanteReducao">
+                  <Input id="constanteReducao" type="number" step="0.01" min={0} {...form.register("constanteReducao")} />
+                </Field>
+                <Field label="Coeficiente da reducao" htmlFor="coeficienteReducao">
+                  <Input id="coeficienteReducao" type="number" step="0.000001" min={0} {...form.register("coeficienteReducao")} />
+                </Field>
+              </div>
+            </div>
             {editing && (
               <div className="flex items-center gap-2">
                 <Controller

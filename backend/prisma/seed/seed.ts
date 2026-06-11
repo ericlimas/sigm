@@ -339,15 +339,26 @@ async function main() {
   const TETOS_INSS_ANTIGOS = [7786.02, 8157.41];
   const FAIXA_INSS_2026 = { faixaInicial: 0, faixaFinal: null, aliquota: 11, parcelaDeduzir: 0, tetoPrevidenciario: 932.31 };
 
-  const FAIXAS_IRRF_2024 = [
-    { baseInicial: 0, baseFinal: 2259.20, aliquota: 0, parcelaDeduzir: 0 },
-    { baseInicial: 2259.21, baseFinal: 2826.65, aliquota: 7.5, parcelaDeduzir: 169.44 },
-    { baseInicial: 2826.66, baseFinal: 3751.05, aliquota: 15, parcelaDeduzir: 381.44 },
-    { baseInicial: 3751.06, baseFinal: 4664.68, aliquota: 22.5, parcelaDeduzir: 662.77 },
-    { baseInicial: 4664.69, baseFinal: null, aliquota: 27.5, parcelaDeduzir: 896.00 },
+  // Tabela de incidencia mensal do IRRF a partir de janeiro/2026 (parametros oficiais RFB)
+  const BASES_IRRF_ANTIGAS = [2259.20, 2112.0];
+  const FAIXAS_IRRF_2026 = [
+    { baseInicial: 0, baseFinal: 2428.80, aliquota: 0, parcelaDeduzir: 0 },
+    { baseInicial: 2428.81, baseFinal: 2826.65, aliquota: 7.5, parcelaDeduzir: 182.16 },
+    { baseInicial: 2826.66, baseFinal: 3751.05, aliquota: 15, parcelaDeduzir: 394.16 },
+    { baseInicial: 3751.06, baseFinal: 4664.68, aliquota: 22.5, parcelaDeduzir: 675.49 },
+    { baseInicial: 4664.69, baseFinal: null, aliquota: 27.5, parcelaDeduzir: 908.73 },
   ];
 
+  // Deducao por dependente e reducao do imposto para rendimentos ate
+  // R$ 7.350,00/mes (Lei 15.270/2025), vigentes a partir de janeiro/2026
   const VALOR_DEDUCAO_DEPENDENTE = 189.59;
+  const REDUCAO_IRRF_2026 = {
+    limiteFaixa1: 5000.0,
+    reducaoMaxima: 312.89,
+    limiteFaixa2: 7350.0,
+    constanteReducao: 978.62,
+    coeficienteReducao: 0.133145,
+  };
 
   const entidadesParaTabelas = await prisma.entidade.findMany({ select: { id: true } });
   for (const e of entidadesParaTabelas) {
@@ -364,21 +375,38 @@ async function main() {
       });
     }
 
-    const existeIrrf = await prisma.tabelaIrrfFaixa.findFirst({ where: { entidadeId: e.id } });
-    if (!existeIrrf) {
+    const faixasIrrf = await prisma.tabelaIrrfFaixa.findMany({ where: { entidadeId: e.id } });
+    const faixaIsentaAtual = faixasIrrf.find((f) => Number(f.baseInicial) === 0);
+    const ehTabelaIrrfAntiga =
+      faixasIrrf.length > 0 && BASES_IRRF_ANTIGAS.includes(Number(faixaIsentaAtual?.baseFinal ?? -1));
+
+    if (faixasIrrf.length === 0 || ehTabelaIrrfAntiga) {
+      if (faixasIrrf.length) {
+        await prisma.tabelaIrrfFaixa.deleteMany({ where: { id: { in: faixasIrrf.map((f) => f.id) } } });
+      }
       await prisma.tabelaIrrfFaixa.createMany({
-        data: FAIXAS_IRRF_2024.map((f) => ({
+        data: FAIXAS_IRRF_2026.map((f) => ({
           entidadeId: e.id,
-          vigenciaInicio: new Date("2024-05-01"),
+          vigenciaInicio: new Date("2026-01-01"),
           ...f,
         })),
       });
     }
 
-    const existeDeducao = await prisma.tabelaIrrfDeducao.findFirst({ where: { entidadeId: e.id } });
-    if (!existeDeducao) {
+    const deducaoExistente = await prisma.tabelaIrrfDeducao.findFirst({ where: { entidadeId: e.id } });
+    if (!deducaoExistente) {
       await prisma.tabelaIrrfDeducao.create({
-        data: { entidadeId: e.id, vigenciaInicio: new Date("2024-05-01"), valorPorDependente: VALOR_DEDUCAO_DEPENDENTE },
+        data: {
+          entidadeId: e.id,
+          vigenciaInicio: new Date("2026-01-01"),
+          valorPorDependente: VALOR_DEDUCAO_DEPENDENTE,
+          ...REDUCAO_IRRF_2026,
+        },
+      });
+    } else if (deducaoExistente.limiteFaixa1 == null) {
+      await prisma.tabelaIrrfDeducao.update({
+        where: { id: deducaoExistente.id },
+        data: REDUCAO_IRRF_2026,
       });
     }
   }

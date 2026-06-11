@@ -154,6 +154,11 @@ const irrfDeducaoSchema = z.object({
   vigenciaInicio: z.coerce.date(),
   vigenciaFim: z.coerce.date().optional().nullable(),
   valorPorDependente: z.coerce.number().min(0),
+  limiteFaixa1: z.coerce.number().min(0).optional().nullable(),
+  reducaoMaxima: z.coerce.number().min(0).optional().nullable(),
+  limiteFaixa2: z.coerce.number().min(0).optional().nullable(),
+  constanteReducao: z.coerce.number().min(0).optional().nullable(),
+  coeficienteReducao: z.coerce.number().min(0).optional().nullable(),
   ativo: z.boolean().optional(),
 });
 

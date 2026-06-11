@@ -129,6 +129,22 @@ export async function calcularRetencao({
       irrfRetido = baseIrrf * (aliquotaIrrf / 100) - Number(faixa.parcelaDeduzir);
     }
     if (irrfRetido < 0) irrfRetido = 0;
+
+    // Reducao do imposto para rendimentos ate R$ 7.350,00 (Lei 15.270/2025)
+    if (deducaoFaixa?.limiteFaixa1 != null && deducaoFaixa.coeficienteReducao != null) {
+      const limiteFaixa1 = Number(deducaoFaixa.limiteFaixa1);
+      const limiteFaixa2 = Number(deducaoFaixa.limiteFaixa2 ?? 0);
+      const constanteReducao = Number(deducaoFaixa.constanteReducao ?? 0);
+      const coeficienteReducao = Number(deducaoFaixa.coeficienteReducao);
+
+      if (baseIrrf <= limiteFaixa1) {
+        irrfRetido = 0;
+      } else if (baseIrrf <= limiteFaixa2) {
+        const reducao = Math.max(0, constanteReducao - coeficienteReducao * baseIrrf);
+        irrfRetido = Math.max(0, irrfRetido - reducao);
+      }
+    }
+
     irrfRetido = round2(irrfRetido);
   }
 
