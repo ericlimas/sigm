@@ -362,6 +362,16 @@ export default function EmpenhosPage() {
   const empenho = detailQuery.data;
   const podeMovimentar = empenho?.status === "NORMAL";
 
+  let textoImpressao: string | null = null;
+  let erroImpressao: string | null = null;
+  if (printQuery.data) {
+    try {
+      textoImpressao = buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData);
+    } catch {
+      erroImpressao = "Nao foi possivel montar o documento de impressao. O sistema pode estar em atualizacao, tente novamente em instantes.";
+    }
+  }
+
   return (
     <div className="space-y-3 p-4">
       <PageHeader
@@ -649,17 +659,18 @@ export default function EmpenhosPage() {
           {printQuery.isError && (
             <p className="p-4 text-sm text-destructive">{getErrorMessage(printQuery.error)}</p>
           )}
-          {printQuery.data && (
+          {erroImpressao && <p className="p-4 text-sm text-destructive">{erroImpressao}</p>}
+          {textoImpressao && (
             <pre className="overflow-x-auto whitespace-pre rounded-md border bg-white p-4 font-mono text-[11px] leading-[1.5] text-black">
-              {buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData)}
+              {textoImpressao}
             </pre>
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setPrintOpen(false)}>Fechar</Button>
             <Button
               type="button"
-              onClick={() => imprimirOrdemPagamento(buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData))}
-              disabled={!printQuery.data}
+              onClick={() => textoImpressao && imprimirOrdemPagamento(textoImpressao)}
+              disabled={!textoImpressao}
             >
               <Printer className="mr-1.5 h-4 w-4" />
               Imprimir
