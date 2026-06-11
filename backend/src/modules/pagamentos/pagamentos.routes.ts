@@ -114,7 +114,8 @@ router.post("/", requirePermissao("PAGAMENTOS", "CRIAR"), async (req, res) => {
   const totalPago = liquidacao.pagamentos
     .filter((p) => p.status === "PAGO")
     .reduce((acc, p) => acc + Number(p.valor), 0);
-  const saldoAPagar = Number(liquidacao.valor) - totalPago;
+  const valorAPagarLiquidacao = liquidacao.retencao ? Number(liquidacao.retencao.valorLiquido) : Number(liquidacao.valor);
+  const saldoAPagar = valorAPagarLiquidacao - totalPago;
 
   if (data.valor > saldoAPagar) {
     throw AppError.badRequest("Valor do pagamento maior que o saldo a pagar da liquidacao", { saldoAPagar });

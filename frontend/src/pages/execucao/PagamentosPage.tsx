@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,11 +69,19 @@ const cancelarSchema = z.object({
 });
 type CancelarFormValues = z.infer<typeof cancelarSchema>;
 
+function valorAPagarLiquidacao(liquidacao: Liquidacao): number {
+  return liquidacao.retencao ? Number(liquidacao.retencao.valorLiquido) : Number(liquidacao.valor);
+}
+
 function saldoAPagar(liquidacao: Liquidacao): number {
   const pago = (liquidacao.pagamentos ?? [])
     .filter((p) => p.status === "PAGO")
     .reduce((acc, p) => acc + Number(p.valor), 0);
-  return Number(liquidacao.valor) - pago;
+  return round2(valorAPagarLiquidacao(liquidacao) - pago);
+}
+
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 export default function PagamentosPage() {
@@ -148,6 +156,12 @@ export default function PagamentosPage() {
     !!liquidacaoSelecionada &&
     liquidacaoSelecionada.empenho?.credor?.tipoPessoa === "FISICA" &&
     !liquidacaoSelecionada.retencao;
+
+  useEffect(() => {
+    if (!liquidacaoSelecionada) return;
+    form.setValue("valor", Math.max(0, saldoAPagar(liquidacaoSelecionada)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liquidacaoIdSelecionada]);
 
   function openCreate() {
     form.reset(DEFAULT_VALUES);
