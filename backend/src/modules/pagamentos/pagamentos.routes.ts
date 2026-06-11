@@ -5,8 +5,24 @@ import { AppError } from "@/utils/AppError";
 import { getPagination, buildPaginatedResponse } from "@/utils/pagination";
 import { registrarAuditoria } from "@/utils/audit";
 import { requirePermissao } from "@/middleware/rbac";
+import { valorPorExtenso } from "@/utils/numeroPorExtenso";
 
 const router = Router();
+
+/** Calcula o saldo disponivel (valor atualizado - empenhado) de uma dotacao */
+function saldoDisponivelDotacao(dotacao: {
+  valorInicial: unknown;
+  valorAdicionado: unknown;
+  valorReduzido: unknown;
+  valorEmpenhado: unknown;
+}) {
+  return (
+    Number(dotacao.valorInicial) +
+    Number(dotacao.valorAdicionado) -
+    Number(dotacao.valorReduzido) -
+    Number(dotacao.valorEmpenhado)
+  );
+}
 
 const pagamentoSchema = z.object({
   liquidacaoId: z.string().uuid(),
@@ -267,6 +283,137 @@ router.get("/:id/comprovante", requirePermissao("PAGAMENTOS", "VISUALIZAR"), asy
       valorPago: pagamento.valor,
     },
     contaBancaria: pagamento.contaBancaria,
+  });
+});
+
+// GET /api/pagamentos/:id/imprimir - dados formatados para impressao da Nota de Empenho com quitacao
+router.get("/:id/imprimir", requirePermissao("PAGAMENTOS", "VISUALIZAR"), async (req, res) => {
+  const { entidadeId, nome: usuarioNome } = req.authContext!;
+  const pagamento = await prisma.pagamento.findFirst({
+    where: { id: req.params.id, deletedAt: null, liquidacao: { empenho: { entidadeId, deletedAt: null } } },
+    include: {
+      liquidacao: {
+        include: {
+          empenho: {
+            include: {
+              credor: true,
+              dotacao: { include: { orgao: true, unidadeOrcamentaria: true, fonteRecurso: true, programa: true, acao: true } },
+              entidade: true,
+            },
+          },
+          retencao: true,
+        },
+      },
+      contaBancaria: true,
+    },
+  });
+  if (!pagamento) throw AppError.notFound("Pagamento nao encontrado");
+
+  const { liquidacao } = pagamento;
+  const { empenho } = liquidacao;
+  const dotacao = empenho.dotacao;
+
+  const valorLiquidoEmpenho = Number(empenho.valor) - Number(empenho.valorAnulado);
+  const saldoAtual = saldoDisponivelDotacao(dotacao);
+  const saldoAnterior = saldoAtual + valorLiquidoEmpenho;
+  const saldoALiquidar = valorLiquidoEmpenho - Number(empenho.valorLiquidado);
+
+  const desconto = liquidacao.retencao
+    ? Number(liquidacao.retencao.inssRetido) + Number(liquidacao.retencao.irrfRetido)
+    : 0;
+  const valorLiquidoPago = liquidacao.retencao ? Number(liquidacao.retencao.valorLiquido) : Number(liquidacao.valor);
+
+  res.json({
+    documento: "NOTA DE EMPENHO",
+    numero: `${empenho.numero}/${empenho.exercicio}`,
+    exercicio: empenho.exercicio,
+    tipo: empenho.tipo,
+    data: empenho.data,
+    entidade: {
+      nome: empenho.entidade.nome,
+      municipio: empenho.entidade.municipio,
+      uf: empenho.entidade.uf,
+      ordenador: {
+        nome: empenho.entidade.ordenadorNome,
+        cpf: empenho.entidade.ordenadorCpf,
+        cargo: empenho.entidade.ordenadorCargo,
+      },
+      contador: {
+        nome: empenho.entidade.contadorNome,
+        documento: empenho.entidade.contadorDocumento,
+        cargo: empenho.entidade.contadorCargo,
+      },
+      diretorFinanceiro: {
+        nome: empenho.entidade.diretorFinanceiroNome,
+        cpf: empenho.entidade.diretorFinanceiroCpf,
+        cargo: empenho.entidade.diretorFinanceiroCargo,
+      },
+    },
+    credor: {
+      nome: empenho.credor.nome,
+      cpfCnpj: empenho.credor.cpfCnpj,
+      inscricaoEstadual: empenho.credor.inscricaoEstadual,
+      logradouro: empenho.credor.logradouro,
+      numero: empenho.credor.numero,
+      complemento: empenho.credor.complemento,
+      bairro: empenho.credor.bairro,
+      cep: empenho.credor.cep,
+      municipio: empenho.credor.municipio,
+      uf: empenho.credor.uf,
+      banco: empenho.credor.banco,
+      agencia: empenho.credor.agencia,
+      conta: empenho.credor.conta,
+    },
+    dotacao: {
+      ficha: dotacao.ficha,
+      orgaoCodigo: dotacao.orgao.codigo,
+      orgao: dotacao.orgao.nome,
+      unidadeCodigo: dotacao.unidadeOrcamentaria.codigo,
+      unidade: dotacao.unidadeOrcamentaria.nome,
+      funcao: dotacao.funcao,
+      subfuncao: dotacao.subfuncao,
+      programaCodigo: dotacao.programa?.codigo,
+      programa: dotacao.programa?.nome,
+      acaoCodigo: dotacao.acao?.codigo,
+      acao: dotacao.acao?.nome,
+      elementoDespesa: dotacao.elementoDespesa,
+      fonteRecurso: `${dotacao.fonteRecurso.codigo} - ${dotacao.fonteRecurso.descricao}`,
+    },
+    processo: empenho.processo,
+    historico: empenho.historico,
+    valorLiquido: valorLiquidoEmpenho,
+    valorExtenso: valorPorExtenso(valorLiquidoEmpenho),
+    saldoDotacao: {
+      saldoAnterior,
+      valorEmpenhado: valorLiquidoEmpenho,
+      saldoAtual,
+      totalEmpenhado: Number(dotacao.valorEmpenhado),
+      valorLiquidado: Number(empenho.valorLiquidado),
+      desconto,
+      valorLiquido: valorLiquidoPago,
+      saldoALiquidar,
+      valorALiquidar: saldoALiquidar,
+    },
+    liquidacao: {
+      numero: liquidacao.numero,
+      data: liquidacao.data,
+      valor: liquidacao.valor,
+    },
+    pagamento: {
+      data: pagamento.data,
+      valor: pagamento.valor,
+      valorExtenso: valorPorExtenso(Number(pagamento.valor)),
+      formaPagamento: pagamento.formaPagamento,
+      numeroOrdemPagamento: pagamento.numeroOrdemPagamento,
+    },
+    contaBancaria: pagamento.contaBancaria
+      ? {
+          descricao: pagamento.contaBancaria.descricao,
+          banco: pagamento.contaBancaria.banco,
+          conta: pagamento.contaBancaria.conta,
+        }
+      : null,
+    usuarioLogado: usuarioNome,
   });
 });
 

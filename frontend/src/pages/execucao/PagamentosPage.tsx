@@ -3,11 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Ban, Receipt, Printer, AlertTriangle } from "lucide-react";
+import { Plus, Ban, Printer, AlertTriangle } from "lucide-react";
 import { api, getErrorMessage, type PaginatedResponse } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, formatDate, formatCpfCnpj } from "@/lib/utils";
+import { formatCurrency, formatDate, formatValorAsterisco } from "@/lib/utils";
+import { LARGURA_DOC, centralizar, linhasResponsavel, buildCabecalhoNotaEmpenho, imprimirDocumento, type NotaEmpenhoCabecalho } from "@/lib/notaEmpenho";
 import PageHeader from "@/components/shared/PageHeader";
 import DataTable, { type DataTableColumn } from "@/components/shared/DataTable";
 import PaginationBar from "@/components/shared/PaginationBar";
@@ -84,6 +85,58 @@ function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+interface PagamentoImprimirData extends NotaEmpenhoCabecalho {
+  liquidacao: { numero: number; data: string; valor: number };
+  pagamento: {
+    data: string;
+    valor: number;
+    valorExtenso: string;
+    formaPagamento: FormaPagamento;
+    numeroOrdemPagamento: string | null;
+  };
+  contaBancaria: { descricao: string; banco: string | null; conta: string | null } | null;
+  usuarioLogado: string;
+}
+
+function buildNotaPagamentoTexto(d: PagamentoImprimirData): string {
+  const linhaSep = "-".repeat(LARGURA_DOC);
+  const linhas = buildCabecalhoNotaEmpenho(d);
+
+  linhas.push(linhaSep);
+  linhas.push(
+    `A liquidação Nº ${String(d.liquidacao.numero).padStart(3, "0")}, no valor R$ ${formatValorAsterisco(d.liquidacao.valor)}, da despesa a que se refere a presente`
+  );
+  linhas.push("NOTA DE EMPENHO, foi procedida com base no documento apresentado, onde demonstra a entrega");
+  linhas.push("do material ou efetivação do serviço prestado.");
+  linhas.push(`Data: ${formatDate(d.liquidacao.data)}    Assinatura: _____________________________________________`);
+  linhas.push(`Data p/ Pagto: ${formatDate(d.pagamento.data)}`);
+
+  linhas.push(linhaSep);
+  linhas.push("Face a liquidação acima autorizo o pagamento desta importância ao favorecido.");
+  linhas.push(`Data: ${formatDate(d.pagamento.data)}    Ord. Pagto: ${d.pagamento.numeroOrdemPagamento || "___________________________________"}`);
+  linhas.push(...linhasResponsavel(d.entidade.diretorFinanceiro, "CPF"));
+
+  linhas.push(linhaSep);
+  linhas.push(`Recebi(emos) a importância de R$ ${formatValorAsterisco(d.pagamento.valor)},`);
+  linhas.push(`${d.pagamento.valorExtenso}.`);
+  linhas.push("referente a despesa acima mencionada, da qual é dada plena quitação.");
+  linhas.push("");
+  linhas.push("___/___/_____      ____________________      ________________________________________");
+  linhas.push("    Data               Identidade/CPF/CGC         Assinatura do Credor ou seu Procurador");
+
+  linhas.push(linhaSep);
+  linhas.push(centralizar("R E C U R S O"));
+  const banco = d.contaBancaria ? `${d.contaBancaria.banco ?? "-"} - ${d.contaBancaria.descricao}` : "-";
+  const conta = d.contaBancaria?.conta ?? "-";
+  const cheque = d.pagamento.formaPagamento === "CHEQUE" ? d.pagamento.numeroOrdemPagamento ?? "-" : "-";
+  linhas.push(`BANCO: ${banco}    CONTA: ${conta}    CHEQUE: ${cheque}    DATA: ${formatDate(d.pagamento.data)}`);
+
+  linhas.push(linhaSep);
+  linhas.push(`Usuário: ${d.usuarioLogado}`);
+
+  return linhas.join("\n");
+}
+
 export default function PagamentosPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -99,7 +152,7 @@ export default function PagamentosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [cancelarOpen, setCancelarOpen] = useState(false);
-  const [comprovanteOpen, setComprovanteOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
 
   const listQuery = useQuery({
     queryKey: ["pagamentos", status, formaPagamento, page],
@@ -122,10 +175,10 @@ export default function PagamentosPage() {
     enabled: !!detailId,
   });
 
-  const comprovanteQuery = useQuery({
-    queryKey: ["pagamento-comprovante", detailId],
-    queryFn: async () => (await api.get(`/pagamentos/${detailId}/comprovante`)).data,
-    enabled: !!detailId && comprovanteOpen,
+  const printQuery = useQuery({
+    queryKey: ["pagamento-imprimir", detailId],
+    queryFn: async () => (await api.get(`/pagamentos/${detailId}/imprimir`)).data,
+    enabled: !!detailId && printOpen,
   });
 
   const liquidacoesQuery = useQuery({
@@ -222,7 +275,16 @@ export default function PagamentosPage() {
 
   const pagamento = detailQuery.data;
   const podeCancelarAtual = pagamento?.status === "PAGO";
-  const c = comprovanteQuery.data;
+
+  let textoImpressao: string | null = null;
+  let erroImpressao: string | null = null;
+  if (printQuery.data) {
+    try {
+      textoImpressao = buildNotaPagamentoTexto(printQuery.data as PagamentoImprimirData);
+    } catch {
+      erroImpressao = "Nao foi possivel montar o documento de impressao. O sistema pode estar em atualizacao, tente novamente em instantes.";
+    }
+  }
 
   return (
     <div className="space-y-3 p-4">
@@ -394,9 +456,9 @@ export default function PagamentosPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setComprovanteOpen(true)}>
-                  <Receipt className="mr-1.5 h-3.5 w-3.5" />
-                  Ver Comprovante
+                <Button size="sm" variant="outline" onClick={() => setPrintOpen(true)}>
+                  <Printer className="mr-1.5 h-3.5 w-3.5" />
+                  Imprimir Comprovante
                 </Button>
                 {podeCancelar && podeCancelarAtual && (
                   <Button size="sm" variant="outline" onClick={() => { cancelarForm.reset({ justificativa: "" }); setCancelarOpen(true); }}>
@@ -428,44 +490,31 @@ export default function PagamentosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: comprovante */}
-      <Dialog open={comprovanteOpen} onOpenChange={setComprovanteOpen}>
-        <DialogContent className="max-w-xl print:max-w-none">
+      {/* Dialog: impressao */}
+      <Dialog open={printOpen} onOpenChange={setPrintOpen}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Comprovante de Pagamento</DialogTitle>
+            <DialogTitle>Nota de Empenho</DialogTitle>
           </DialogHeader>
-          {c && (
-            <div className="space-y-2 text-sm">
-              <p className="text-center text-base font-semibold">{c.titulo ?? "ORDEM DE PAGAMENTO"}</p>
-              <p><strong>Numero:</strong> {c.numero}</p>
-              <p><strong>Data:</strong> {formatDate(c.data)}</p>
-              <p><strong>Forma de Pagamento:</strong> {c.formaPagamento ? FORMA_LABELS[c.formaPagamento as FormaPagamento] : "-"}</p>
-              <div className="rounded-md border p-2">
-                <p className="font-medium">Credor</p>
-                <p>{c.credor?.nome} - {c.credor?.cpfCnpj ? formatCpfCnpj(c.credor.cpfCnpj) : "-"}</p>
-                {c.credor?.banco && <p>Banco: {c.credor.banco} Agencia: {c.credor.agencia} Conta: {c.credor.conta}</p>}
-                {c.credor?.chavePix && <p>Chave PIX: {c.credor.chavePix}</p>}
-              </div>
-              <div className="rounded-md border p-2">
-                <p className="font-medium">Referencias</p>
-                <p>Empenho: {c.referencias?.empenho ?? "-"}</p>
-                <p>Liquidacao: {c.referencias?.liquidacao ?? "-"}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div><div className="text-xs text-muted-foreground">Valor Bruto</div><div className="font-semibold">{formatCurrency(c.valores?.valorBruto ?? c.valor)}</div></div>
-                <div><div className="text-xs text-muted-foreground">Valor Pago</div><div className="font-semibold">{formatCurrency(c.valor)}</div></div>
-                {c.valores?.inssRetido != null && (
-                  <div><div className="text-xs text-muted-foreground">INSS Retido</div><div className="font-semibold">{formatCurrency(c.valores.inssRetido)}</div></div>
-                )}
-                {c.valores?.irrfRetido != null && (
-                  <div><div className="text-xs text-muted-foreground">IRRF Retido</div><div className="font-semibold">{formatCurrency(c.valores.irrfRetido)}</div></div>
-                )}
-              </div>
-            </div>
+          {printQuery.isLoading && (
+            <p className="p-4 text-sm text-muted-foreground">Carregando dados para impressao...</p>
+          )}
+          {printQuery.isError && (
+            <p className="p-4 text-sm text-destructive">{getErrorMessage(printQuery.error)}</p>
+          )}
+          {erroImpressao && <p className="p-4 text-sm text-destructive">{erroImpressao}</p>}
+          {textoImpressao && (
+            <pre className="overflow-x-auto whitespace-pre rounded-md border bg-white p-4 font-mono text-[11px] leading-[1.5] text-black">
+              {textoImpressao}
+            </pre>
           )}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setComprovanteOpen(false)}>Fechar</Button>
-            <Button type="button" onClick={() => window.print()}>
+            <Button type="button" variant="outline" onClick={() => setPrintOpen(false)}>Fechar</Button>
+            <Button
+              type="button"
+              onClick={() => textoImpressao && imprimirDocumento("Nota de Empenho", textoImpressao)}
+              disabled={!textoImpressao}
+            >
               <Printer className="mr-1.5 h-4 w-4" />
               Imprimir
             </Button>
