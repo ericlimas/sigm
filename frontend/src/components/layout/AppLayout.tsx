@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Landmark, LogOut, KeyRound, ChevronDown } from "lucide-react";
+import { LogOut, KeyRound, ChevronDown } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useTabsStore } from "@/stores/tabsStore";
 import { findLabelForPath } from "@/config/menu";
@@ -55,11 +55,11 @@ export default function AppLayout() {
     <div className="flex h-screen flex-col">
       <header className="flex h-11 items-center justify-between bg-sidebar px-3 text-sidebar-foreground">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-accent text-accent-foreground">
-            <Landmark className="h-4 w-4" />
+          <div className="flex h-7 items-center rounded-sm bg-white px-1.5 py-1">
+            <img src="/logo-sindicato.png" alt="Sindicato dos Produtores Rurais Janaúba" className="h-full w-auto object-contain" />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-semibold">SIGM</p>
+            <p className="text-sm font-semibold">Financeiro</p>
             <p className="text-[10px] text-sidebar-foreground/70">{entidade?.nome}</p>
           </div>
         </div>

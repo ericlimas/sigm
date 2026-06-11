@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Landmark, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { api, getErrorMessage } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
@@ -79,11 +79,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-sidebar p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Landmark className="h-6 w-6" />
-          </div>
-          <CardTitle className="text-xl">SIGM</CardTitle>
-          <CardDescription>Sistema Integrado de Gestao Municipal</CardDescription>
+          <img
+            src="/logo-sindicato.png"
+            alt="Sindicato dos Produtores Rurais Janaúba"
+            className="mx-auto mb-2 h-14 w-auto object-contain"
+          />
+          <CardTitle className="text-xl">Financeiro</CardTitle>
+          <CardDescription>Sindicato dos Produtores Rurais Janaúba</CardDescription>
         </CardHeader>
         <CardContent>
           {!entidades ? (
