@@ -329,44 +329,60 @@ async function main() {
   console.log(`Usuario admin: admin@sigm.local / Admin@123 (login: admin)`);
 
   // ---------------------------------------------------------------------
-  // Tabela INSS (vigencia 2024 - segurado contribuinte individual/empregado)
+  // Tabelas de retencao de INSS/IRRF (Pessoa Fisica/autonomos) - vigencia
+  // atual, aplicadas a todas as entidades que ainda nao possuem tabelas
   // ---------------------------------------------------------------------
-  const tetoInss = 7786.02;
-  const existeInss = await prisma.tabelaInssFaixa.findFirst({ where: { entidadeId: entidade.id } });
-  if (!existeInss) {
-    await prisma.tabelaInssFaixa.createMany({
-      data: [
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2024-01-01"), faixaInicial: 0, faixaFinal: 1412.00, aliquota: 7.5, parcelaDeduzir: 0, tetoPrevidenciario: tetoInss },
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2024-01-01"), faixaInicial: 1412.01, faixaFinal: 2666.68, aliquota: 9, parcelaDeduzir: 21.18, tetoPrevidenciario: tetoInss },
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2024-01-01"), faixaInicial: 2666.69, faixaFinal: 4000.03, aliquota: 12, parcelaDeduzir: 101.18, tetoPrevidenciario: tetoInss },
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2024-01-01"), faixaInicial: 4000.04, faixaFinal: null, aliquota: 14, parcelaDeduzir: 181.18, tetoPrevidenciario: tetoInss },
-      ],
-    });
-  }
+  const TETO_INSS_2025 = 8157.41;
+  const FAIXAS_INSS_2025 = [
+    { faixaInicial: 0, faixaFinal: 1518.00, aliquota: 7.5, parcelaDeduzir: 0 },
+    { faixaInicial: 1518.01, faixaFinal: 2793.88, aliquota: 9, parcelaDeduzir: 22.77 },
+    { faixaInicial: 2793.89, faixaFinal: 4190.83, aliquota: 12, parcelaDeduzir: 106.59 },
+    { faixaInicial: 4190.84, faixaFinal: null, aliquota: 14, parcelaDeduzir: 190.40 },
+  ];
 
-  // ---------------------------------------------------------------------
-  // Tabela IRRF progressiva (vigencia maio/2023) + deducao por dependente
-  // ---------------------------------------------------------------------
-  const existeIrrf = await prisma.tabelaIrrfFaixa.findFirst({ where: { entidadeId: entidade.id } });
-  if (!existeIrrf) {
-    await prisma.tabelaIrrfFaixa.createMany({
-      data: [
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2023-05-01"), baseInicial: 0, baseFinal: 2112.00, aliquota: 0, parcelaDeduzir: 0 },
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2023-05-01"), baseInicial: 2112.01, baseFinal: 2826.65, aliquota: 7.5, parcelaDeduzir: 158.40 },
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2023-05-01"), baseInicial: 2826.66, baseFinal: 3751.05, aliquota: 15, parcelaDeduzir: 370.40 },
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2023-05-01"), baseInicial: 3751.06, baseFinal: 4664.68, aliquota: 22.5, parcelaDeduzir: 651.73 },
-        { entidadeId: entidade.id, vigenciaInicio: new Date("2023-05-01"), baseInicial: 4664.69, baseFinal: null, aliquota: 27.5, parcelaDeduzir: 884.96 },
-      ],
-    });
-  }
+  const FAIXAS_IRRF_2024 = [
+    { baseInicial: 0, baseFinal: 2259.20, aliquota: 0, parcelaDeduzir: 0 },
+    { baseInicial: 2259.21, baseFinal: 2826.65, aliquota: 7.5, parcelaDeduzir: 169.44 },
+    { baseInicial: 2826.66, baseFinal: 3751.05, aliquota: 15, parcelaDeduzir: 381.44 },
+    { baseInicial: 3751.06, baseFinal: 4664.68, aliquota: 22.5, parcelaDeduzir: 662.77 },
+    { baseInicial: 4664.69, baseFinal: null, aliquota: 27.5, parcelaDeduzir: 896.00 },
+  ];
 
-  const existeDeducao = await prisma.tabelaIrrfDeducao.findFirst({ where: { entidadeId: entidade.id } });
-  if (!existeDeducao) {
-    await prisma.tabelaIrrfDeducao.create({
-      data: { entidadeId: entidade.id, vigenciaInicio: new Date("2023-05-01"), valorPorDependente: 189.59 },
-    });
+  const VALOR_DEDUCAO_DEPENDENTE = 189.59;
+
+  const entidadesParaTabelas = await prisma.entidade.findMany({ select: { id: true } });
+  for (const e of entidadesParaTabelas) {
+    const existeInss = await prisma.tabelaInssFaixa.findFirst({ where: { entidadeId: e.id } });
+    if (!existeInss) {
+      await prisma.tabelaInssFaixa.createMany({
+        data: FAIXAS_INSS_2025.map((f) => ({
+          entidadeId: e.id,
+          vigenciaInicio: new Date("2025-01-01"),
+          tetoPrevidenciario: TETO_INSS_2025,
+          ...f,
+        })),
+      });
+    }
+
+    const existeIrrf = await prisma.tabelaIrrfFaixa.findFirst({ where: { entidadeId: e.id } });
+    if (!existeIrrf) {
+      await prisma.tabelaIrrfFaixa.createMany({
+        data: FAIXAS_IRRF_2024.map((f) => ({
+          entidadeId: e.id,
+          vigenciaInicio: new Date("2024-05-01"),
+          ...f,
+        })),
+      });
+    }
+
+    const existeDeducao = await prisma.tabelaIrrfDeducao.findFirst({ where: { entidadeId: e.id } });
+    if (!existeDeducao) {
+      await prisma.tabelaIrrfDeducao.create({
+        data: { entidadeId: e.id, vigenciaInicio: new Date("2024-05-01"), valorPorDependente: VALOR_DEDUCAO_DEPENDENTE },
+      });
+    }
   }
-  console.log("Tabelas INSS/IRRF criadas");
+  console.log(`Tabelas INSS/IRRF verificadas para ${entidadesParaTabelas.length} entidade(s)`);
 
   // ---------------------------------------------------------------------
   // PCASP basico
