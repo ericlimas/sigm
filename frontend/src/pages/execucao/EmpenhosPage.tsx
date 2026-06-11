@@ -621,6 +621,12 @@ export default function EmpenhosPage() {
           <DialogHeader className="print:hidden">
             <DialogTitle>Ordem de Pagamento</DialogTitle>
           </DialogHeader>
+          {printQuery.isLoading && (
+            <p className="p-4 text-sm text-muted-foreground">Carregando dados para impressao...</p>
+          )}
+          {printQuery.isError && (
+            <p className="p-4 text-sm text-destructive">{getErrorMessage(printQuery.error)}</p>
+          )}
           {printQuery.data && (
             <pre className="overflow-x-auto whitespace-pre rounded-md border bg-white p-4 font-mono text-[11px] leading-[1.5] text-black print:border-none print:p-0">
               {buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData)}
@@ -628,7 +634,7 @@ export default function EmpenhosPage() {
           )}
           <DialogFooter className="print:hidden">
             <Button type="button" variant="outline" onClick={() => setPrintOpen(false)}>Fechar</Button>
-            <Button type="button" onClick={() => window.print()}>
+            <Button type="button" onClick={() => window.print()} disabled={!printQuery.data}>
               <Printer className="mr-1.5 h-4 w-4" />
               Imprimir
             </Button>
