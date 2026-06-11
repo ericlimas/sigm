@@ -28,6 +28,7 @@ const usuarioUpdateSchema = z.object({
 
 router.get("/perfis", requirePermissao("USUARIOS", "VISUALIZAR"), async (_req, res) => {
   const perfis = await prisma.perfil.findMany({
+    where: { chave: { in: ["ADMINISTRADOR", "USUARIO"] } },
     select: { id: true, chave: true, nome: true, descricao: true },
     orderBy: { nome: "asc" },
   });

@@ -49,6 +49,12 @@ const PERFIS: { chave: string; nome: string; descricao: string; permissoes: [str
     permissoes: PERMISSOES,
   },
   {
+    chave: "USUARIO",
+    nome: "Usuario",
+    descricao: "Acesso operacional aos modulos do sistema, exceto gestao de usuarios",
+    permissoes: PERMISSOES.filter(([modulo]) => modulo !== "USUARIOS"),
+  },
+  {
     chave: "CONTABILIDADE",
     nome: "Contabilidade",
     descricao: "Plano de contas, lancamentos contabeis, retencoes e relatorios",
