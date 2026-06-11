@@ -5,6 +5,7 @@ import { AppError } from "@/utils/AppError";
 import { getPagination, buildPaginatedResponse } from "@/utils/pagination";
 import { registrarAuditoria } from "@/utils/audit";
 import { requirePermissao } from "@/middleware/rbac";
+import { valorPorExtenso } from "@/utils/numeroPorExtenso";
 
 const router = Router();
 
@@ -103,9 +104,9 @@ router.get("/:id", requirePermissao("EMPENHOS", "VISUALIZAR"), async (req, res) 
   res.json({ ...empenho, saldoNaoLiquidado: saldoNaoLiquidado(empenho) });
 });
 
-// GET /:id/imprimir - dados formatados para impressao da Nota de Empenho
+// GET /:id/imprimir - dados formatados para impressao da Ordem de Pagamento / Nota de Empenho
 router.get("/:id/imprimir", requirePermissao("EMPENHOS", "VISUALIZAR"), async (req, res) => {
-  const { entidadeId } = req.authContext!;
+  const { entidadeId, nome: usuarioNome } = req.authContext!;
   const empenho = await prisma.empenho.findFirst({
     where: { id: req.params.id, entidadeId, deletedAt: null },
     include: {
@@ -117,15 +118,33 @@ router.get("/:id/imprimir", requirePermissao("EMPENHOS", "VISUALIZAR"), async (r
   });
   if (!empenho) throw AppError.notFound("Empenho nao encontrado");
 
+  const valorLiquido = Number(empenho.valor) - Number(empenho.valorAnulado);
+
   res.json({
-    documento: "NOTA DE EMPENHO",
+    documento: "ORDEM DE PAGAMENTO",
     numero: `${empenho.numero}/${empenho.exercicio}`,
+    exercicio: empenho.exercicio,
     tipo: empenho.tipo,
     data: empenho.data,
-    entidade: empenho.entidade.nome,
+    entidade: {
+      nome: empenho.entidade.nome,
+      municipio: empenho.entidade.municipio,
+      uf: empenho.entidade.uf,
+    },
     credor: {
       nome: empenho.credor.nome,
       cpfCnpj: empenho.credor.cpfCnpj,
+      inscricaoEstadual: empenho.credor.inscricaoEstadual,
+      logradouro: empenho.credor.logradouro,
+      numero: empenho.credor.numero,
+      complemento: empenho.credor.complemento,
+      bairro: empenho.credor.bairro,
+      cep: empenho.credor.cep,
+      municipio: empenho.credor.municipio,
+      uf: empenho.credor.uf,
+      banco: empenho.credor.banco,
+      agencia: empenho.credor.agencia,
+      conta: empenho.credor.conta,
     },
     dotacao: {
       ficha: empenho.dotacao.ficha,
@@ -136,14 +155,17 @@ router.get("/:id/imprimir", requirePermissao("EMPENHOS", "VISUALIZAR"), async (r
       programa: empenho.dotacao.programa?.nome,
       acao: empenho.dotacao.acao?.nome,
       elementoDespesa: empenho.dotacao.elementoDespesa,
-      fonteRecurso: empenho.dotacao.fonteRecurso.descricao,
+      fonteRecurso: `${empenho.dotacao.fonteRecurso.codigo} - ${empenho.dotacao.fonteRecurso.descricao}`,
     },
     processo: empenho.processo,
     historico: empenho.historico,
     valor: empenho.valor,
     valorAnulado: empenho.valorAnulado,
-    valorLiquido: Number(empenho.valor) - Number(empenho.valorAnulado),
+    valorLiquido,
+    valorExtenso: valorPorExtenso(valorLiquido),
+    descontos: 0,
     movimentos: empenho.movimentos,
+    usuarioLogado: usuarioNome,
   });
 });
 

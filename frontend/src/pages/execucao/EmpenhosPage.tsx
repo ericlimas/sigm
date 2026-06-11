@@ -7,7 +7,7 @@ import { Plus, Printer, RotateCcw, TrendingUp, Ban } from "lucide-react";
 import { api, getErrorMessage, type PaginatedResponse } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateExtenso, formatValorAsterisco, nomeEstado } from "@/lib/utils";
 import PageHeader from "@/components/shared/PageHeader";
 import DataTable, { type DataTableColumn } from "@/components/shared/DataTable";
 import PaginationBar from "@/components/shared/PaginationBar";
@@ -52,6 +52,115 @@ const MOVIMENTO_LABELS: Record<TipoMovimentoEmpenho, string> = {
   ANULACAO: "Anulacao",
   ESTORNO: "Estorno",
 };
+
+const LARGURA_DOC = 81;
+
+interface EmpenhoImprimirData {
+  numero: string;
+  exercicio: number;
+  tipo: TipoEmpenho;
+  data: string;
+  entidade: { nome: string; municipio: string; uf: string };
+  credor: {
+    nome: string;
+    cpfCnpj: string;
+    inscricaoEstadual: string | null;
+    logradouro: string | null;
+    numero: string | null;
+    complemento: string | null;
+    bairro: string | null;
+    cep: string | null;
+    municipio: string | null;
+    uf: string | null;
+    banco: string | null;
+    agencia: string | null;
+    conta: string | null;
+  };
+  dotacao: {
+    ficha: number;
+    orgao: string;
+    unidade: string;
+    funcao: string;
+    subfuncao: string;
+    programa?: string | null;
+    acao?: string | null;
+    elementoDespesa: string;
+    fonteRecurso: string;
+  };
+  historico: string;
+  valor: number;
+  valorAnulado: number;
+  valorLiquido: number;
+  valorExtenso: string;
+  descontos: number;
+  usuarioLogado: string;
+}
+
+function centralizar(texto: string, largura = LARGURA_DOC): string {
+  if (texto.length >= largura) return texto;
+  const espacos = largura - texto.length;
+  return " ".repeat(Math.floor(espacos / 2)) + texto;
+}
+
+function campo(label: string, valor: string, largura = 17): string {
+  const rotulo = label.length >= largura ? label : label.padEnd(largura, ".");
+  return `${rotulo}: ${valor}`;
+}
+
+function buildOrdemPagamentoTexto(d: EmpenhoImprimirData): string {
+  const linhaSep = "-".repeat(LARGURA_DOC);
+  const endereco = [d.credor.logradouro, d.credor.numero ? `Nº ${d.credor.numero}` : null, d.credor.complemento]
+    .filter(Boolean)
+    .join(", ");
+
+  const linhas: string[] = [];
+  linhas.push(centralizar(d.entidade.nome.toUpperCase()));
+  linhas.push(centralizar(`ESTADO DE ${nomeEstado(d.entidade.uf).toUpperCase()}`));
+  linhas.push(centralizar(`ORDEM DE PAGAMENTO Nº ${d.numero}`));
+  linhas.push(centralizar(`EMPENHO ${TIPO_LABELS[d.tipo].toUpperCase()} - DESPESA ORCAMENTARIA`));
+  linhas.push(` Exercício de: ${d.exercicio}    Data: ${formatDate(d.data)}    Ficha: ${String(d.dotacao.ficha).padStart(6, "0")}`);
+  linhas.push(linhaSep);
+  linhas.push(campo("Órgão", d.dotacao.orgao));
+  linhas.push(campo("Unidade", d.dotacao.unidade));
+  linhas.push(campo("Função/Subfunção", `${d.dotacao.funcao} / ${d.dotacao.subfuncao}`));
+  if (d.dotacao.programa || d.dotacao.acao) {
+    linhas.push(campo("Programa/Ação", `${d.dotacao.programa ?? "-"} / ${d.dotacao.acao ?? "-"}`));
+  }
+  linhas.push(campo("Elemento Despesa", d.dotacao.elementoDespesa));
+  linhas.push(campo("Fonte de Recurso", d.dotacao.fonteRecurso));
+  linhas.push("");
+  linhas.push(" Fica o Serviço de Finanças autorizado a pagar a importância de");
+  linhas.push(`R$ ${formatValorAsterisco(d.valorLiquido)} ,${d.valorExtenso}.`);
+  linhas.push("ao Credor abaixo mencionado.");
+  linhas.push(`Credor...: ${d.credor.nome}`);
+  if (endereco) linhas.push(`Endereço.: ${endereco}    Bairro: ${d.credor.bairro ?? "-"}    CEP: ${d.credor.cep ?? "-"}`);
+  linhas.push(`Cidade...: ${d.credor.municipio ?? "-"}    Est: ${d.credor.uf ?? "-"}`);
+  linhas.push(`Insc. Est: ${d.credor.inscricaoEstadual ?? "-"}    CGC/CPF: ${d.credor.cpfCnpj}`);
+  if (d.credor.banco) linhas.push(`Banco ...: ${d.credor.banco}    Agência..: ${d.credor.agencia ?? "-"}    Conta ..: ${d.credor.conta ?? "-"}`);
+  linhas.push(`Hist.: ${d.historico}`);
+  linhas.push(`VALOR DA ORDEM DE PAGAMENTO: ${formatValorAsterisco(d.valor)}`);
+  linhas.push(`DESCONTOS .................: ${formatValorAsterisco(d.descontos)}`);
+  linhas.push(`VALOR LÍQUIDO .............: ${formatValorAsterisco(d.valorLiquido)}`);
+  linhas.push("");
+  linhas.push(" Contador(a)/Contabilista: _______________________________");
+  linhas.push("");
+  linhas.push(`Pague-se ${d.entidade.nome}, ${formatDateExtenso(d.data)}.`);
+  linhas.push(" Ordenador da Despesa: ____________________________________________");
+  linhas.push(linhaSep);
+  linhas.push(centralizar("Q U I T A Ç Ã O"));
+  linhas.push(`Recebi(emos) do(a) ${d.entidade.nome}, a importância de`);
+  linhas.push(`R$ ${formatValorAsterisco(d.valorLiquido)} ,${d.valorExtenso}`);
+  linhas.push("referente a Ordem de Pagamento acima mencionada, da qual é dada plena quitação.");
+  linhas.push("___/___/_____   __________________   ______________________________________");
+  linhas.push("    Data         Identidade/CPF/CGC      Assinatura do Credor ou seu Procurador");
+  linhas.push(linhaSep);
+  linhas.push(`BANCO: ${d.credor.banco ?? "-"}    CONTA: ${d.credor.conta ?? "-"}    CHEQUE:`);
+  linhas.push(linhaSep);
+  linhas.push("Data: ___/___/____    Tesoureiro: ____________________________________________");
+  linhas.push(`Usuário: ${d.usuarioLogado}`);
+
+  return linhas.join("\n");
+}
 
 const empenhoSchema = z.object({
   exercicio: z.preprocess((v) => Number(v), z.number().int()),
@@ -508,37 +617,16 @@ export default function EmpenhosPage() {
 
       {/* Dialog: impressao */}
       <Dialog open={printOpen} onOpenChange={setPrintOpen}>
-        <DialogContent className="max-w-xl print:max-w-none">
-          <DialogHeader>
-            <DialogTitle>Nota de Empenho</DialogTitle>
+        <DialogContent className="max-w-3xl print:max-w-none">
+          <DialogHeader className="print:hidden">
+            <DialogTitle>Ordem de Pagamento</DialogTitle>
           </DialogHeader>
           {printQuery.data && (
-            <div className="space-y-2 text-sm">
-              <p className="text-center text-base font-semibold">{printQuery.data.documento}</p>
-              <p><strong>Numero:</strong> {printQuery.data.numero}</p>
-              <p><strong>Tipo:</strong> {TIPO_LABELS[printQuery.data.tipo as TipoEmpenho]}</p>
-              <p><strong>Data:</strong> {formatDate(printQuery.data.data)}</p>
-              <p><strong>Entidade:</strong> {printQuery.data.entidade}</p>
-              <p><strong>Credor:</strong> {printQuery.data.credor?.nome} ({printQuery.data.credor?.cpfCnpj})</p>
-              <div className="rounded-md border p-2">
-                <p><strong>Ficha:</strong> {printQuery.data.dotacao?.ficha}</p>
-                <p><strong>Orgao:</strong> {printQuery.data.dotacao?.orgao}</p>
-                <p><strong>Unidade:</strong> {printQuery.data.dotacao?.unidade}</p>
-                <p><strong>Funcao/Subfuncao:</strong> {printQuery.data.dotacao?.funcao} / {printQuery.data.dotacao?.subfuncao}</p>
-                <p><strong>Programa/Acao:</strong> {printQuery.data.dotacao?.programa ?? "-"} / {printQuery.data.dotacao?.acao ?? "-"}</p>
-                <p><strong>Elemento de Despesa:</strong> {printQuery.data.dotacao?.elementoDespesa}</p>
-                <p><strong>Fonte de Recurso:</strong> {printQuery.data.dotacao?.fonteRecurso}</p>
-              </div>
-              <p><strong>Processo:</strong> {printQuery.data.processo ?? "-"}</p>
-              <p><strong>Historico:</strong> {printQuery.data.historico}</p>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div><div className="text-xs text-muted-foreground">Valor</div><div className="font-semibold">{formatCurrency(printQuery.data.valor)}</div></div>
-                <div><div className="text-xs text-muted-foreground">Anulado</div><div className="font-semibold">{formatCurrency(printQuery.data.valorAnulado)}</div></div>
-                <div><div className="text-xs text-muted-foreground">Liquido</div><div className="font-semibold">{formatCurrency(printQuery.data.valorLiquido)}</div></div>
-              </div>
-            </div>
+            <pre className="overflow-x-auto whitespace-pre rounded-md border bg-white p-4 font-mono text-[11px] leading-[1.5] text-black print:border-none print:p-0">
+              {buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData)}
+            </pre>
           )}
-          <DialogFooter>
+          <DialogFooter className="print:hidden">
             <Button type="button" variant="outline" onClick={() => setPrintOpen(false)}>Fechar</Button>
             <Button type="button" onClick={() => window.print()}>
               <Printer className="mr-1.5 h-4 w-4" />
