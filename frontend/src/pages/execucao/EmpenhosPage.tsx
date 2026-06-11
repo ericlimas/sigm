@@ -107,6 +107,28 @@ function campo(label: string, valor: string, largura = 17): string {
   return `${rotulo}: ${valor}`;
 }
 
+/** Abre uma janela separada apenas com o texto e aciona a impressao (evita conflitos de CSS/print com a SPA) */
+function imprimirOrdemPagamento(texto: string): void {
+  const janela = window.open("", "_blank", "width=900,height=700");
+  if (!janela) return;
+
+  const conteudo = texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  janela.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Ordem de Pagamento</title>
+<style>
+  body { margin: 16px; font-family: "Courier New", Courier, monospace; font-size: 11px; line-height: 1.5; white-space: pre; color: #000; background: #fff; }
+</style>
+</head>
+<body>${conteudo}</body>
+</html>`);
+  janela.document.close();
+  janela.focus();
+  janela.print();
+}
+
 function buildOrdemPagamentoTexto(d: EmpenhoImprimirData): string {
   const linhaSep = "-".repeat(LARGURA_DOC);
   const endereco = [d.credor.logradouro, d.credor.numero ? `Nº ${d.credor.numero}` : null, d.credor.complemento]
@@ -617,8 +639,8 @@ export default function EmpenhosPage() {
 
       {/* Dialog: impressao */}
       <Dialog open={printOpen} onOpenChange={setPrintOpen}>
-        <DialogContent className="max-w-3xl print:max-w-none">
-          <DialogHeader className="print:hidden">
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
             <DialogTitle>Ordem de Pagamento</DialogTitle>
           </DialogHeader>
           {printQuery.isLoading && (
@@ -628,13 +650,17 @@ export default function EmpenhosPage() {
             <p className="p-4 text-sm text-destructive">{getErrorMessage(printQuery.error)}</p>
           )}
           {printQuery.data && (
-            <pre className="overflow-x-auto whitespace-pre rounded-md border bg-white p-4 font-mono text-[11px] leading-[1.5] text-black print:border-none print:p-0">
+            <pre className="overflow-x-auto whitespace-pre rounded-md border bg-white p-4 font-mono text-[11px] leading-[1.5] text-black">
               {buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData)}
             </pre>
           )}
-          <DialogFooter className="print:hidden">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setPrintOpen(false)}>Fechar</Button>
-            <Button type="button" onClick={() => window.print()} disabled={!printQuery.data}>
+            <Button
+              type="button"
+              onClick={() => imprimirOrdemPagamento(buildOrdemPagamentoTexto(printQuery.data as EmpenhoImprimirData))}
+              disabled={!printQuery.data}
+            >
               <Printer className="mr-1.5 h-4 w-4" />
               Imprimir
             </Button>

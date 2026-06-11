@@ -74,30 +74,6 @@
   background: hsl(var(--muted-foreground));
 }
 
-/* Impressao: exibe somente o conteudo do dialog aberto (ex: Ordem de Pagamento) */
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  [role="dialog"], [role="dialog"] * {
-    visibility: visible;
-  }
-  [role="dialog"] {
-    position: absolute;
-    inset: 0;
-    transform: none;
-    max-height: none;
-    max-width: none;
-    overflow: visible;
-    box-shadow: none;
-    border: none;
-  }
-  [role="dialog"] [data-radix-dialog-close],
-  [role="dialog"] .print\:hidden {
-    display: none !important;
-  }
-}
-
 /* Grids de consulta - linhas compactas estilo ERP */
 .data-grid table {
   font-size: 12.5px;
