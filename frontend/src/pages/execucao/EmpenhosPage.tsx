@@ -220,7 +220,7 @@ function buildNotaEmpenhoTexto(d: EmpenhoImprimirData): string {
   linhas.push("");
   linhas.push(`Licitação.: Não se Aplica            Processo Nº.: ${d.processo ?? "-"}`);
   linhas.push("");
-  linhas.push(`Data: ${formatDate(d.data)}    Ordenador da Despesa: ____________________________________`);
+  linhas.push(`Data: ${formatDate(d.data)}    Presidente: ____________________________________`);
   linhas.push(...linhasResponsavel(d.entidade.ordenador, "CPF"));
   linhas.push(linhaSep);
   linhas.push(centralizar("Sendo o saldo da dotação orçamentária o abaixo demonstrado:"));

@@ -31,6 +31,37 @@ export interface RetencaoHistorico {
   createdAt: string;
 }
 
+export interface TabelaInssFaixa {
+  id: string;
+  vigenciaInicio: string;
+  vigenciaFim: string | null;
+  faixaInicial: number;
+  faixaFinal: number | null;
+  aliquota: number;
+  parcelaDeduzir: number;
+  tetoPrevidenciario: number;
+  ativo: boolean;
+}
+
+export interface TabelaIrrfFaixa {
+  id: string;
+  vigenciaInicio: string;
+  vigenciaFim: string | null;
+  baseInicial: number;
+  baseFinal: number | null;
+  aliquota: number;
+  parcelaDeduzir: number;
+  ativo: boolean;
+}
+
+export interface TabelaIrrfDeducao {
+  id: string;
+  vigenciaInicio: string;
+  vigenciaFim: string | null;
+  valorPorDependente: number;
+  ativo: boolean;
+}
+
 export interface RetencaoCalculo {
   id: string;
   liquidacaoId: string;
