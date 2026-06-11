@@ -18,6 +18,9 @@ export interface PerfilOption {
 }
 
 export interface EntidadeConfiguracao {
+  nome: string;
+  municipio: string;
+  uf: string;
   ordenadorNome: string | null;
   ordenadorCpf: string | null;
   ordenadorCargo: string | null;

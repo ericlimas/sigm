@@ -8,6 +8,9 @@ import { requirePermissao } from "@/middleware/rbac";
 const router = Router();
 
 const configuracaoSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome da entidade"),
+  municipio: z.string().trim().min(1, "Informe o municipio"),
+  uf: z.string().trim().length(2, "Informe a UF"),
   ordenadorNome: z.string().trim().optional().nullable(),
   ordenadorCpf: z.string().trim().optional().nullable(),
   ordenadorCargo: z.string().trim().optional().nullable(),
@@ -26,6 +29,9 @@ router.get("/configuracao", requirePermissao("USUARIOS", "VISUALIZAR"), async (r
   const entidade = await prisma.entidade.findUnique({
     where: { id: entidadeId },
     select: {
+      nome: true,
+      municipio: true,
+      uf: true,
       ordenadorNome: true,
       ordenadorCpf: true,
       ordenadorCargo: true,
@@ -50,6 +56,9 @@ router.put("/configuracao", requirePermissao("USUARIOS", "EDITAR"), async (req, 
   const anterior = await prisma.entidade.findUnique({
     where: { id: entidadeId },
     select: {
+      nome: true,
+      municipio: true,
+      uf: true,
       ordenadorNome: true,
       ordenadorCpf: true,
       ordenadorCargo: true,
@@ -67,6 +76,9 @@ router.put("/configuracao", requirePermissao("USUARIOS", "EDITAR"), async (req, 
     where: { id: entidadeId },
     data,
     select: {
+      nome: true,
+      municipio: true,
+      uf: true,
       ordenadorNome: true,
       ordenadorCpf: true,
       ordenadorCargo: true,

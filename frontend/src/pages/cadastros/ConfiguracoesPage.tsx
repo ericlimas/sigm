@@ -24,6 +24,9 @@ import type { EntidadeConfiguracao } from "@/types/usuarios";
 import type { TabelaInssFaixa, TabelaIrrfFaixa, TabelaIrrfDeducao } from "@/types/execucao";
 
 const DEFAULT_VALUES: EntidadeConfiguracao = {
+  nome: "",
+  municipio: "",
+  uf: "",
   ordenadorNome: "",
   ordenadorCpf: "",
   ordenadorCargo: "",
@@ -79,6 +82,9 @@ function ResponsaveisTab() {
   useEffect(() => {
     if (configQuery.data) {
       form.reset({
+        nome: configQuery.data.nome ?? "",
+        municipio: configQuery.data.municipio ?? "",
+        uf: configQuery.data.uf ?? "",
         ordenadorNome: configQuery.data.ordenadorNome ?? "",
         ordenadorCpf: configQuery.data.ordenadorCpf ?? "",
         ordenadorCargo: configQuery.data.ordenadorCargo ?? "",
@@ -104,6 +110,24 @@ function ResponsaveisTab() {
 
   return (
     <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="space-y-3">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Dados da Entidade</CardTitle>
+          <CardDescription>Nome e localizacao impressos no cabecalho da Nota de Empenho</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <Field label="Nome" htmlFor="entidadeNome" error={form.formState.errors.nome?.message} className="md:col-span-2">
+            <Input id="entidadeNome" disabled={!podeEditar} {...form.register("nome")} />
+          </Field>
+          <Field label="Municipio" htmlFor="entidadeMunicipio" error={form.formState.errors.municipio?.message}>
+            <Input id="entidadeMunicipio" disabled={!podeEditar} {...form.register("municipio")} />
+          </Field>
+          <Field label="UF" htmlFor="entidadeUf" error={form.formState.errors.uf?.message}>
+            <Input id="entidadeUf" maxLength={2} disabled={!podeEditar} {...form.register("uf")} />
+          </Field>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Presidente</CardTitle>
