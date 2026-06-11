@@ -3,6 +3,9 @@ import { useAuthStore } from "@/stores/authStore";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3333/api",
+  // O backend (Render free) pode "dormir" apos inatividade e levar ate ~1min para responder
+  // ao primeiro request. Sem timeout, a UI ficava travada indefinidamente em "Carregando...".
+  timeout: 60_000,
 });
 
 api.interceptors.request.use((config) => {

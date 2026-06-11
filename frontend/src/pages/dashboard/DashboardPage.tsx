@@ -26,6 +26,7 @@ import { api, getErrorMessage } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { nomeFuncao, MESES_ABREV } from "@/lib/funcoes";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -49,6 +50,10 @@ export default function DashboardPage() {
   const resumoQuery = useQuery({
     queryKey: ["dashboard", "resumo", exercicio],
     queryFn: async () => (await api.get<DashboardResumo>("/dashboard/resumo", { params: { exercicio } })).data,
+    // O backend pode estar "dormindo" (Render free) e demorar para acordar: tenta novamente
+    // algumas vezes antes de exibir erro ao usuario
+    retry: 2,
+    retryDelay: (tentativa) => Math.min(2000 * 2 ** tentativa, 15_000),
   });
 
   const lrfQuery = useQuery({
@@ -119,7 +124,11 @@ export default function DashboardPage() {
 
       {resumoQuery.isLoading && (
         <Card>
-          <CardContent className="p-4 text-sm text-muted-foreground">Carregando indicadores...</CardContent>
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            {resumoQuery.failureCount > 0
+              ? "O servidor estava inativo e esta sendo iniciado. Isso pode levar ate 1 minuto na primeira vez, aguarde..."
+              : "Carregando indicadores..."}
+          </CardContent>
         </Card>
       )}
 
@@ -132,6 +141,11 @@ export default function DashboardPage() {
             </CardTitle>
             <CardDescription>{getErrorMessage(resumoQuery.error)}</CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button size="sm" variant="outline" onClick={() => resumoQuery.refetch()}>
+              Tentar novamente
+            </Button>
+          </CardContent>
         </Card>
       )}
 
