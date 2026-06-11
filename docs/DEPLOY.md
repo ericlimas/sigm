@@ -11,15 +11,17 @@ PostgreSQL local:
 
 1. Crie uma conta em https://supabase.com e clique em **New project**.
 2. Escolha um nome (ex.: `sigm`), uma **senha do banco** (anote, vai precisar dela) e a
-   regiao mais proxima (ex.: South America - Sao Paulo).
+   regiao mais proxima (ex.: South America - Sao Paulo ou US East).
 3. Aguarde o projeto ficar pronto (1-2 minutos).
-4. Va em **Project Settings -> Database -> Connection string -> URI**.
-5. Copie a string (algo como
-   `postgresql://postgres:[YOUR-PASSWORD]@db.xxxxxxxxxxxx.supabase.co:5432/postgres`),
-   substitua `[YOUR-PASSWORD]` pela senha que voce definiu e adicione `?sslmode=require`
-   no final. Esse vai ser o valor de `DATABASE_URL`.
+4. Clique no botao **Connect** (topo da pagina) -> aba **ORM** -> selecione **Prisma**.
+5. Sera exibido um bloco `.env.local` com duas variaveis - copie as duas e
+   substitua `[YOUR-PASSWORD]` pela senha definida no passo 2 nas duas:
+   - `DATABASE_URL` (pooler modo *transaction*, porta `6543`, com `?pgbouncer=true`)
+     -> usado pela aplicacao em runtime.
+   - `DIRECT_URL` (pooler modo *session*, porta `5432`)
+     -> usado pelo Prisma para rodar `migrate deploy`.
 
-> Guarde essa URL completa - ela sera usada na configuracao do Render.
+> Guarde as duas strings completas - serao usadas na configuracao do Render.
 
 ## 2. Backend (Render)
 
@@ -29,7 +31,10 @@ PostgreSQL local:
    configura o servico `sigm-backend` (Node, plano free, build/start commands,
    `prisma migrate deploy` + seed automaticos).
 3. Quando solicitado, preencha as variaveis marcadas como `sync: false`:
-   - `DATABASE_URL`: a connection string do Supabase (passo 1.5).
+   - `DATABASE_URL`: a connection string do pooler *transaction* (porta 6543) do
+     Supabase (passo 1.5).
+   - `DIRECT_URL`: a connection string do pooler *session* (porta 5432) do
+     Supabase (passo 1.5).
    - `CORS_ORIGIN`: por enquanto deixe `http://localhost:5173` - voce vai atualizar
      depois com a URL do Vercel (passo 3).
 4. Clique em **Apply**. O Render vai instalar dependencias, gerar o Prisma Client,
