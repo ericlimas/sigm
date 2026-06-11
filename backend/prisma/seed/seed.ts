@@ -332,13 +332,12 @@ async function main() {
   // Tabelas de retencao de INSS/IRRF (Pessoa Fisica/autonomos) - vigencia
   // atual, aplicadas a todas as entidades que ainda nao possuem tabelas
   // ---------------------------------------------------------------------
-  const TETO_INSS_2025 = 8157.41;
-  const FAIXAS_INSS_2025 = [
-    { faixaInicial: 0, faixaFinal: 1518.00, aliquota: 7.5, parcelaDeduzir: 0 },
-    { faixaInicial: 1518.01, faixaFinal: 2793.88, aliquota: 9, parcelaDeduzir: 22.77 },
-    { faixaInicial: 2793.89, faixaFinal: 4190.83, aliquota: 12, parcelaDeduzir: 106.59 },
-    { faixaInicial: 4190.84, faixaFinal: null, aliquota: 14, parcelaDeduzir: 190.40 },
-  ];
+  // INSS de autonomo (contribuinte individual): aliquota fixa de 11% sobre o
+  // valor pago, limitada a 11% do teto previdenciario vigente (2026: R$ 8.475,55
+  // x 11% = R$ 932,31). Marcadores das versoes antigas (tabela progressiva) usados
+  // para identificar e substituir tabelas geradas por versoes anteriores do seed.
+  const TETOS_INSS_ANTIGOS = [7786.02, 8157.41];
+  const FAIXA_INSS_2026 = { faixaInicial: 0, faixaFinal: null, aliquota: 11, parcelaDeduzir: 0, tetoPrevidenciario: 932.31 };
 
   const FAIXAS_IRRF_2024 = [
     { baseInicial: 0, baseFinal: 2259.20, aliquota: 0, parcelaDeduzir: 0 },
@@ -352,15 +351,16 @@ async function main() {
 
   const entidadesParaTabelas = await prisma.entidade.findMany({ select: { id: true } });
   for (const e of entidadesParaTabelas) {
-    const existeInss = await prisma.tabelaInssFaixa.findFirst({ where: { entidadeId: e.id } });
-    if (!existeInss) {
-      await prisma.tabelaInssFaixa.createMany({
-        data: FAIXAS_INSS_2025.map((f) => ({
-          entidadeId: e.id,
-          vigenciaInicio: new Date("2025-01-01"),
-          tetoPrevidenciario: TETO_INSS_2025,
-          ...f,
-        })),
+    const faixasInss = await prisma.tabelaInssFaixa.findMany({ where: { entidadeId: e.id } });
+    const ehTabelaProgressivaAntiga =
+      faixasInss.length > 0 && faixasInss.every((f) => TETOS_INSS_ANTIGOS.includes(Number(f.tetoPrevidenciario)));
+
+    if (faixasInss.length === 0 || ehTabelaProgressivaAntiga) {
+      if (faixasInss.length) {
+        await prisma.tabelaInssFaixa.deleteMany({ where: { id: { in: faixasInss.map((f) => f.id) } } });
+      }
+      await prisma.tabelaInssFaixa.create({
+        data: { entidadeId: e.id, vigenciaInicio: new Date("2026-01-01"), ...FAIXA_INSS_2026 },
       });
     }
 
