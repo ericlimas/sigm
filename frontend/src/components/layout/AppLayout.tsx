@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, KeyRound, ChevronDown } from "lucide-react";
+import { LogOut, KeyRound, ChevronDown, Sun, Moon } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore";
 import { useTabsStore } from "@/stores/tabsStore";
 import { findLabelForPath } from "@/config/menu";
 import { api } from "@/lib/api";
@@ -29,6 +30,7 @@ export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { usuario, entidade, perfil, refreshToken, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const { openTab, setActive } = useTabsStore();
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function AppLayout() {
     <div className="flex h-screen flex-col">
       <header className="flex h-11 items-center justify-between bg-sidebar px-3 text-sidebar-foreground">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 items-center rounded-sm bg-white px-1.5 py-1">
+          <div className="flex h-7 items-center rounded-md bg-white px-1.5 py-1">
             <img src="/logo-sindicato.png" alt="Sindicato dos Produtores Rurais Janaúba" className="h-full w-auto object-contain" />
           </div>
           <div className="leading-tight">
@@ -64,37 +66,48 @@ export default function AppLayout() {
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-sm px-2 py-1 text-xs hover:bg-white/10">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="bg-accent text-[10px] text-accent-foreground">
-                  {usuario ? getInitials(usuario.nome) : "?"}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden sm:flex sm:flex-col sm:items-start sm:leading-tight">
-                <span className="font-medium">{usuario?.nome}</span>
-                <span className="text-[10px] text-sidebar-foreground/70">{perfil?.nome}</span>
-              </span>
-              <ChevronDown className="h-3 w-3 opacity-70" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[200px]">
-            <DropdownMenuLabel>
-              <span className="block text-xs font-medium">{usuario?.nome}</span>
-              <span className="block text-[11px] font-normal text-muted-foreground">{usuario?.email}</span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
-              <KeyRound className="mr-2 h-3.5 w-3.5" />
-              Trocar senha
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleLogout}>
-              <LogOut className="mr-2 h-3.5 w-3.5" />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-white/10">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="bg-accent text-[10px] text-accent-foreground">
+                    {usuario ? getInitials(usuario.nome) : "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden sm:flex sm:flex-col sm:items-start sm:leading-tight">
+                  <span className="font-medium">{usuario?.nome}</span>
+                  <span className="text-[10px] text-sidebar-foreground/70">{perfil?.nome}</span>
+                </span>
+                <ChevronDown className="h-3 w-3 opacity-70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[200px]">
+              <DropdownMenuLabel>
+                <span className="block text-xs font-medium">{usuario?.nome}</span>
+                <span className="block text-[11px] font-normal text-muted-foreground">{usuario?.email}</span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>
+                <KeyRound className="mr-2 h-3.5 w-3.5" />
+                Trocar senha
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleLogout}>
+                <LogOut className="mr-2 h-3.5 w-3.5" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       <TopMenuBar />

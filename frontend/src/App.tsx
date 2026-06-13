@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import type { ComponentType } from "react";
+import { useThemeStore } from "@/stores/themeStore";
 import AppLayout from "@/components/layout/AppLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import LoginPage from "@/pages/auth/LoginPage";
@@ -72,6 +74,12 @@ const placeholderRoutes = MENU.flatMap((group) => {
 }).filter((route) => !(route.path in pageOverrides));
 
 export default function App() {
+  const theme = useThemeStore((state) => state.theme);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

@@ -10,7 +10,7 @@ export default function PageHeader({ title, description, actions }: PageHeaderPr
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div>
-        <h1 className="text-lg font-semibold">{title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

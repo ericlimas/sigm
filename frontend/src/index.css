@@ -4,44 +4,83 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 210 20% 98%;
+    --foreground: 222 30% 16%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 30% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222 30% 16%;
 
-    --primary: 160 38% 23%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 160 45% 28%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 25% 94%;
-    --secondary-foreground: 160 38% 23%;
+    --secondary: 160 20% 95%;
+    --secondary-foreground: 160 35% 22%;
 
-    --muted: 150 20% 94%;
-    --muted-foreground: 160 12% 45%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 215 14% 46%;
 
-    --accent: 112 33% 48%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 142 40% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 112 33% 40%;
-    --success-foreground: 210 40% 98%;
+    --success: 142 40% 40%;
+    --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 26 83% 14%;
 
-    --border: 150 18% 88%;
-    --input: 150 18% 88%;
-    --ring: 160 38% 23%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 160 45% 28%;
 
-    --sidebar: 160 45% 17%;
-    --sidebar-foreground: 210 40% 98%;
+    --sidebar: 160 48% 16%;
+    --sidebar-foreground: 0 0% 100%;
 
-    --radius: 0.4rem;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 222 28% 9%;
+    --foreground: 210 30% 96%;
+
+    --card: 222 24% 13%;
+    --card-foreground: 210 30% 96%;
+
+    --popover: 222 24% 13%;
+    --popover-foreground: 210 30% 96%;
+
+    --primary: 150 45% 50%;
+    --primary-foreground: 222 28% 9%;
+
+    --secondary: 222 20% 18%;
+    --secondary-foreground: 210 30% 96%;
+
+    --muted: 222 18% 17%;
+    --muted-foreground: 215 15% 65%;
+
+    --accent: 142 45% 50%;
+    --accent-foreground: 222 28% 9%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 45% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 26 83% 10%;
+
+    --border: 222 18% 22%;
+    --input: 222 18% 22%;
+    --ring: 150 45% 50%;
+
+    --sidebar: 222 30% 10%;
+    --sidebar-foreground: 210 30% 96%;
   }
 }
 
@@ -54,7 +93,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-size: 13px;
+    font-size: 14px;
   }
 }
 
@@ -74,16 +113,16 @@
   background: hsl(var(--muted-foreground));
 }
 
-/* Grids de consulta - linhas compactas estilo ERP */
+/* Grids de consulta */
 .data-grid table {
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .data-grid th {
-  @apply bg-secondary text-secondary-foreground font-semibold uppercase text-[11px] tracking-wide;
+  @apply bg-muted/60 text-muted-foreground font-medium text-xs tracking-wide;
 }
 .data-grid tr:nth-child(even) td {
-  background-color: hsl(var(--muted) / 0.4);
+  background-color: hsl(var(--muted) / 0.3);
 }
 .data-grid tr:hover td {
-  background-color: hsl(var(--accent) / 0.12);
+  background-color: hsl(var(--accent) / 0.08);
 }
